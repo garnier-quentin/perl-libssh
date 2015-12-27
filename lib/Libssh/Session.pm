@@ -14,6 +14,16 @@ use constant SSH_ERROR => -1;
 use constant SSH_AGAIN => -2;
 use constant SSH_EOF => -127;
 
+use constant SSH_SERVER_ERROR => -1;
+use constant SSH_SERVER_NOT_KNOWN => 0;
+use constant SSH_SERVER_KNOWN_OK => 1;
+use constant SSH_SERVER_KNOWN_CHANGED => 2;
+use constant SSH_SERVER_FOUND_OTHER => 3;
+use constant SSH_SERVER_FILE_NOT_FOUND => 4;
+
+use constant SSH_PUBLICKEY_HASH_SHA1 => 0;
+use constant SSH_PUBLICKEY_HASH_MD5 => 1;
+
 our @EXPORT_OK = qw(SSH_OK SSH_ERROR SSH_AGAIN SSH_EOF);
 our @EXPORT = qw();
 our %EXPORT_TAGS = ( 'all' => [ @EXPORT, @EXPORT_OK ] );
@@ -94,13 +104,34 @@ sub option_timeout {
     return ssh_options_set_timeout($self->{ssh_session}, $options{value});
 }
 
+sub option_stricthostkeycheck {
+    my ($self, %options) = @_;
+    
+    return 1 if ($self->check_uint(value => $options{value}, type => 'stricthostkeycheck'));
+    return ssh_options_set_stricthostkeycheck($self->{ssh_session}, $options{value});
+}
+
+sub option_raise_error {
+    my ($self, %options) = @_;
+    
+    $self->{raise_error} = $options{value};
+    return 0;
+}
+
+sub option_print_error {
+    my ($self, %options) = @_;
+    
+    $self->{print_error} = $options{value};
+    return 0;
+}
+
 sub options {
     my ($self, %options) = @_;
 
     foreach my $key (keys %options) {
         my $ret;
 
-        my $func = $self->can("option_" . $key);
+        my $func = $self->can("option_" . lc($key));
         if (defined($func)) {
             $ret = $func->($self, value => $options{$key});
         } else {
@@ -117,15 +148,98 @@ sub options {
     return 1;
 }
 
+sub get_server_publickey {
+    my ($self, %options) = @_;
+    
+    $self->{pubkey} = undef;
+    return ssh_get_publickey($self->{ssh_session});
+}
+
+sub get_publickey_hash {
+    my ($self, %options) = @_;
+    
+    my $hash_type = SSH_PUBLICKEY_HASH_SHA1;
+    if (defined($options{Type}) && 
+        ($options{Type} == SSH_PUBLICKEY_HASH_SHA1 || $options{Type} == SSH_PUBLICKEY_HASH_MD5)) {
+        $hash_type = $options{Type};
+    }
+    
+    return ssh_get_publickey_hash($self->{pubkey}, $hash_type);
+}
+
+sub get_hexa {
+    my ($self, %options) = @_;
+
+    return ssh_get_hexa($options{value});
+}
+
+sub is_server_known {
+    my ($self, %options) = @_;
+    
+    return ssh_is_server_known($self->{ssh_session});
+}
+
+sub write_knownhost {
+    my ($self, %options) = @_;
+    
+    return ssh_write_knownhost($self->{ssh_session});
+}
+
+sub verify_knownhost {
+    my ($self, %options) = @_;
+    
+    my $ret = $self->is_server_known();
+    
+    $self->{pubkey} = $self->get_server_publickey();
+    if (!defined($self->{pubkey})) {
+        $self->set_err(msg => sprintf("get server pubkey failed: %s", ssh_get_error_from_session($self->{ssh_session})));
+        return SSH_ERROR;
+    }
+    
+    my $pubkey_hash = $self->get_publickey_hash();
+    ssh_key_free($self->{pubkey});
+    if (!defined($pubkey_hash)) {
+        $self->set_err(msg => sprintf("get server pubkey hash failed: %s", ssh_get_error_from_session($self->{ssh_session})));
+        return SSH_ERROR;
+    }
+        
+    if ($ret == SSH_SERVER_KNOWN_OK) {
+        return SSH_OK;
+    } elsif ($ret == SSH_SERVER_ERROR) {
+        $self->set_err(msg => sprintf("knownhost failed: %s", ssh_get_error_from_session($self->{ssh_session})));
+    } elsif ($ret == SSH_SERVER_FILE_NOT_FOUND || $ret == SSH_SERVER_NOT_KNOWN) {
+        if ($self->write_knownhost() == SSH_OK) {
+            return SSH_OK;
+        }
+        $self->set_err(msg => sprintf("knownhost write failed: %s", get_strerror()));
+    } elsif ($ret == SSH_SERVER_KNOWN_CHANGED) {
+        return SSH_OK if (defined($options{SkipKeyProblem}) && $options{SkipKeyProblem});
+        $self->set_err(msg => sprintf("knownhost failed: Host key for server changed: it is now: %s", 
+                                      $self->get_hexa(value => $pubkey_hash)));
+    } elsif ($ret == SSH_SERVER_FOUND_OTHER) {
+        return SSH_OK if (defined($options{SkipKeyProblem}) && $options{SkipKeyProblem});
+        $self->set_err(msg => sprintf("knownhost failed: The host key for this server was not found but an other type of key exists."));
+    }
+
+    return SSH_ERROR;
+}
+
 sub connect {
-    my ($self) = @_;
+    my ($self, %options) = @_;
+    my $skip_key_problem = defined($options{SkipKeyProblem}) ? $options{SkipKeyProblem} : 1;
 
     my $ret = ssh_connect($self->{ssh_session});
     if ($ret != SSH_OK) {
         $self->set_err(msg => sprintf("connect failed: %s", ssh_get_error_from_session($self->{ssh_session})));
+        return $ret;
+    }
+    if (!(defined($options{connect_only}) && $options{connect_only} == 1)) {
+        if (($ret = $self->verify_knownhost(SkipKeyProblem => $skip_key_problem)) != SSH_OK) {
+            return $ret;
+        }
     }
     
-    return $ret;
+    return SSH_OK;
 }
 
 sub disconnect {
@@ -151,4 +265,63 @@ __END__
 
 =head1 NAME
 
-Libssh::Session - Interface to the libssh library
+Libssh::Session - Support for the SSH protocol via libssh.
+
+=head1 SYNOPSIS
+
+  !/usr/bin/perl
+
+  use strict;
+  use warnings;
+  use Libssh::Session qw(:all);
+
+  my $session = Libssh::Session->new();
+  if (!$session->options(host => "127.0.0.1", port => 22)) {
+    print $session->error() . "\n";
+    exit(1);
+  }
+
+  if ($session->connect() != SSH_OK) {
+    print $session->error() . "\n";
+    exit(1);
+  }
+
+  print "=== ssh connection success ===\n";
+  exit(0);
+
+=head1 DESCRIPTION
+
+C<Libssh::Session> is a perl interface to the libssh (L<http://www.libssh.org>)
+library. It doesn't support all the library. It's working in progress.
+
+=head1 METHODS
+
+=over 4
+
+==item new
+
+Create new Session object:
+
+    my $session = Libssh::Session->new();
+
+==item error ( )
+
+Returns the last error message; returns undef if no error.
+
+==item get_server_publickey ( )
+
+Returns the server public key. if an error occured, undef is returned.
+
+B<Warning>: should be used if you know whare are you doing!
+
+==item get_publickey_hash ([ OPTIONS ])
+
+Get a hash of the public key. if an error occured, undef is returned.
+
+C<OPTIONS> are passed in a hash like fashion, using key and value pairs. Possible options are:
+
+B<Type> - Hash type to used. Default: SSH_PUBLICKEY_HASH_SHA1. Can be: SSH_PUBLICKEY_HASH_MD5.
+
+=back
+
+=cut

@@ -1,1 +1,2 @@
 ssh_session T_PTRREF
+ssh_key     T_PTROBJ
