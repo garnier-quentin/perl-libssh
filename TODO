@@ -1,2 +1,2 @@
-- working on authentification : http://api.libssh.org/master/libssh_tutor_authentication.html#authentication_details
+- working on authentification pubkey : http://api.libssh.org/master/libssh_tutor_authentication.html#authentication_details
 - working on channels

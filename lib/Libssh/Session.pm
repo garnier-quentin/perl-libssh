@@ -24,7 +24,25 @@ use constant SSH_SERVER_FILE_NOT_FOUND => 4;
 use constant SSH_PUBLICKEY_HASH_SHA1 => 0;
 use constant SSH_PUBLICKEY_HASH_MD5 => 1;
 
-our @EXPORT_OK = qw(SSH_OK SSH_ERROR SSH_AGAIN SSH_EOF);
+use constant SSH_LOG_NOLOG => 0;
+use constant SSH_LOG_WARNING => 1;
+use constant SSH_LOG_PROTOCOL => 2;
+use constant SSH_LOG_PACKET => 3;
+use constant SSH_LOG_FUNCTIONS => 4;
+use constant SSH_LOG_RARE => 1; # like WARNING
+
+use constant SSH_AUTH_ERROR => -1;
+use constant SSH_AUTH_SUCCESS => 0;
+use constant SSH_AUTH_DENIED => 1;
+use constant SSH_AUTH_PARTIAL => 2;
+use constant SSH_AUTH_INFO => 3;
+use constant SSH_AUTH_AGAIN => 4;
+
+our @EXPORT_OK = qw(
+SSH_OK SSH_ERROR SSH_AGAIN SSH_EOF
+SSH_LOG_NOLOG SSH_LOG_WARNING SSH_LOG_PROTOCOL SSH_LOG_PACKET SSH_LOG_FUNCTIONS
+SSH_AUTH_ERROR SSH_AUTH_SUCCESS SSH_AUTH_DENIED SSH_AUTH_PARTIAL SSH_AUTH_INFO SSH_AUTH_AGAIN
+);
 our @EXPORT = qw();
 our %EXPORT_TAGS = ( 'all' => [ @EXPORT, @EXPORT_OK ] );
 
@@ -45,6 +63,9 @@ sub set_err {
 sub error {
     my ($self, %options) = @_;
     
+    if (defined($options{GetErrorSession}) && $options{GetErrorSession}) {
+        $err = ssh_get_error_from_session($self->{ssh_session}) if (defined($self->{ssh_session}));
+    }
     return $err;
 }
 
@@ -107,8 +128,27 @@ sub option_timeout {
 sub option_stricthostkeycheck {
     my ($self, %options) = @_;
     
-    return 1 if ($self->check_uint(value => $options{value}, type => 'stricthostkeycheck'));
+    return 1 if ($self->check_uint(value => $options{value}, type => 'StrictHostKeyCheck'));
     return ssh_options_set_stricthostkeycheck($self->{ssh_session}, $options{value});
+}
+
+sub option_sshdir {
+    my ($self, %options) = @_;
+    
+    return ssh_options_ssh_dir($self->{ssh_session}, $options{value});
+}
+
+sub option_knownhosts {
+    my ($self, %options) = @_;
+    
+    return ssh_options_knownhosts($self->{ssh_session}, $options{value});
+}
+
+sub option_logverbosity {
+    my ($self, %options) = @_;
+    
+    return 1 if ($self->check_uint(value => $options{value}, type => 'LogVerbosity'));
+    return ssh_options_set_log_verbosity($self->{ssh_session}, $options{value});
 }
 
 sub option_raise_error {
@@ -250,6 +290,34 @@ sub disconnect {
     }
 }
 
+sub auth_password {
+    my ($self, %options) = @_;
+
+    my $ret = ssh_userauth_password($self->{ssh_session}, $options{password});
+    if ($ret == SSH_AUTH_ERROR) {
+        $self->set_err(msg => sprintf("authentification failed: %s", ssh_get_error_from_session($self->{ssh_session})));
+    }
+
+    return $ret;
+}
+
+sub auth_none {
+    my ($self, %options) = @_;
+
+    my $ret = ssh_userauth_none($self->{ssh_session});
+    if ($ret == SSH_AUTH_ERROR) {
+        $self->set_err(msg => sprintf("authentification failed: %s", ssh_get_error_from_session($self->{ssh_session})));
+    }
+
+    return $ret;
+}
+
+sub get_issue_banner {
+    my ($self, %options) = @_;
+    
+    return ssh_get_issue_banner($self->{ssh_session});
+}
+
 sub DESTROY {
     my ($self) = @_;
 
@@ -298,23 +366,23 @@ library. It doesn't support all the library. It's working in progress.
 
 =over 4
 
-==item new
+=item new
 
 Create new Session object:
 
     my $session = Libssh::Session->new();
 
-==item error ( )
+=item error ( )
 
 Returns the last error message; returns undef if no error.
 
-==item get_server_publickey ( )
+=item get_server_publickey ( )
 
 Returns the server public key. if an error occured, undef is returned.
 
 B<Warning>: should be used if you know whare are you doing!
 
-==item get_publickey_hash ([ OPTIONS ])
+=item get_publickey_hash ([ OPTIONS ])
 
 Get a hash of the public key. if an error occured, undef is returned.
 

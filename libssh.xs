@@ -61,6 +61,45 @@ ssh_options_set_stricthostkeycheck(ssh_session session, int value)
         RETVAL = ssh_options_set(session, SSH_OPTIONS_STRICTHOSTKEYCHECK, &value);
     OUTPUT: RETVAL
 
+int
+ssh_options_set_ssh_dir(ssh_session session, char *ssh_dir)
+    CODE:
+        RETVAL = ssh_options_set(session, SSH_OPTIONS_SSH_DIR, ssh_dir);
+    OUTPUT: RETVAL
+
+int
+ssh_options_set_knownhosts(ssh_session session, char *knownhosts)
+    CODE:
+        RETVAL = ssh_options_set(session, SSH_OPTIONS_KNOWNHOSTS, knownhosts);
+    OUTPUT: RETVAL
+
+int
+ssh_options_set_log_verbosity(ssh_session session, int verbosity)
+    CODE:
+        RETVAL = ssh_options_set(session, SSH_OPTIONS_LOG_VERBOSITY, &verbosity);
+    OUTPUT: RETVAL
+
+#
+# ssh auth
+#
+
+int
+ssh_userauth_password(ssh_session session, char *password)
+    CODE:
+        RETVAL = ssh_userauth_password(session, NULL, password);
+    OUTPUT: RETVAL
+
+int
+ssh_userauth_none(ssh_session session)
+    CODE:
+        RETVAL = ssh_userauth_none(session, NULL);
+    OUTPUT: RETVAL
+
+char *
+ssh_get_issue_banner(ssh_session session)
+    CODE:
+        RETVAL = ssh_get_issue_banner(session);
+    OUTPUT: RETVAL
 
 #
 
