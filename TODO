@@ -1,2 +1,5 @@
 - working on authentification pubkey : http://api.libssh.org/master/libssh_tutor_authentication.html#authentication_details
-- working on channels
+- working on channels. function should use i think: 
+  * ssh_channel_read_timeout 
+  * ssh_channel_select
+- I think i can create a function to get a channel "ID" with integers: local_channel . ':' . remote_channel
