@@ -330,6 +330,20 @@ sub get_issue_banner {
 # Channel functions
 #
 
+sub test_cmd {
+    my ($self, %options) = @_;
+    
+    # launch requests
+    my $arrays_channel = [];
+    foreach (@{$options{channel_ids}}) {    
+        $self->channel_request_exec(channel => ${$self->{channels}->{$_->{id}}},
+                                    cmd => $_->{cmd});
+        push @{$arrays_channel}, ${$self->{channels}->{$_->{id}}};
+    }
+    
+    ssh_channel_select_read($arrays_channel, 5);
+}
+
 sub open_channel {
     my ($self, %options) = @_;
     
@@ -371,6 +385,12 @@ sub channel_open_session {
     my ($self, %options) = @_;
     
     return ssh_channel_open_session($options{channel});
+}
+
+sub channel_request_exec {
+    my ($self, %options) = @_;
+    
+    return ssh_channel_request_exec($options{channel}, $options{cmd});
 }
 
 sub channel_close {

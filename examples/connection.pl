@@ -44,6 +44,10 @@ print "=== channel id = " . $channel_id . "\n";
 my $channel_id2 = $session->open_channel();
 print "=== channel id = " . $channel_id2 . "\n";
 
+$session->test_cmd(channel_ids => [ { id => $channel_id, cmd => 'ls -l' },
+                                    { id => $channel_id2, cmd => 'sleep 20' },
+                                  ]);
+
 $channel_id = $session->open_channel();
 print "=== channel id = " . $channel_id . "\n";
 $channel_id = $session->open_channel();

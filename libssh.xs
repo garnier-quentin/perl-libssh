@@ -241,6 +241,48 @@ ssh_channel_get_id(ssh_channel channel)
         RETVAL = str;
     OUTPUT: RETVAL
 
+int
+ssh_channel_request_exec(ssh_channel channel, char *cmd)
+    CODE:
+        RETVAL = ssh_channel_request_exec(channel, cmd);
+    OUTPUT: RETVAL
+
+int
+ssh_channel_select_read(AV *list, int timeout)
+    CODE:
+        struct timeval tm;
+        ssh_channel *read_channels;
+        int ret;
+        int list_len;
+        int i;
+        
+        tm.tv_sec = timeout;
+        tm.tv_usec = 0;
+        
+        list_len = av_len(list) + 1;
+        printf("=== ici = %i===\n", list_len);
+
+        Newxz(read_channels, list_len + 1, ssh_channel);
+        for (i = 0; i < list_len; i++) {
+            SV **svr = av_fetch(list, i, 0);
+            
+            if (svr == NULL || !SvOK(*svr) || !sv_isobject(*svr) || !sv_isa(*svr, "ssh_channel")) {
+                Safefree(read_channels);
+                croak("Invalid parameters");
+            }
+            IV t = SvIV((SV*)SvRV(*svr));
+            read_channels[i] = INT2PTR(ssh_channel, t);
+        }
+        read_channels[i] = NULL;
+        
+        ret = ssh_channel_select(read_channels, NULL, NULL, &tm);
+
+        printf("ret = %i\n", ret);
+
+        Safefree(read_channels);
+        RETVAL = ret;
+    OUTPUT: RETVAL
+
 char *
 get_strerror()
     CODE:
