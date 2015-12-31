@@ -21,6 +21,9 @@ if ($session->connect() != SSH_OK) {
     exit(1);
 }
 
+my $fd = $session->get_fd();
+print "== socket descriptor : " . $fd . "\n";
+
 # wrong password
 if ($session->auth_password(password => $ssh_pass_wrong) != SSH_AUTH_SUCCESS) {
     printf("auth issue: %s\n", $session->error(GetErrorSession => 1));
@@ -34,5 +37,16 @@ print "== authentification succeeded\n";
 
 my $banner = $session->get_issue_banner();
 printf("== server banner: %s\n", defined($banner) ? $banner : '-');
+
+my $channel_id = $session->open_channel();
+print "=== channel id = " . $channel_id . "\n";
+
+my $channel_id2 = $session->open_channel();
+print "=== channel id = " . $channel_id2 . "\n";
+
+$channel_id = $session->open_channel();
+print "=== channel id = " . $channel_id . "\n";
+$channel_id = $session->open_channel();
+print "=== channel id = " . $channel_id . "\n";
 
 exit(0);

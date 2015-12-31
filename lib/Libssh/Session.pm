@@ -81,6 +81,8 @@ sub new {
         $self->set_err(msg => 'ssh_new failed: cannot init session');
         return undef;
     }
+    
+    $self->{channels} = {};
     return $self;
 }
 
@@ -312,16 +314,97 @@ sub auth_none {
     return $ret;
 }
 
+sub get_fd {
+    my ($self, %options) = @_;
+    
+    return ssh_get_fd($self->{ssh_session});
+}
+
 sub get_issue_banner {
     my ($self, %options) = @_;
     
     return ssh_get_issue_banner($self->{ssh_session});
 }
 
+#
+# Channel functions
+#
+
+sub open_channel {
+    my ($self, %options) = @_;
+    
+    my $channel = $self->channel_new();
+    if (!defined($channel)) {
+        return SSH_ERROR;
+    }
+    if ($self->channel_open_session(channel => $channel) != SSH_OK) {
+        $self->channel_free(channel => $channel);
+        return SSH_ERROR;
+    }
+    
+    my $channel_id = ssh_channel_get_id($channel);
+    $self->{channels}->{$channel_id} = \$channel;
+
+    return $channel_id;
+}
+
+sub close_channel {
+    my ($self, %options) = @_;
+    
+    if (!defined($options{channel_id}) || !defined($self->{channels}->{$options{channel_id}})) {
+        return undef;
+    }
+    $self->channel_close(channel => ${$self->{channels}->{$options{channel_id}}});
+    $self->channel_send_eof(channel => ${$self->{channels}->{$options{channel_id}}});
+    $self->channel_free(channel => ${$self->{channels}->{$options{channel_id}}});
+    
+    delete $self->{channels}->{$options{channel_id}};
+}
+
+sub channel_new {
+    my ($self, %options) = @_;
+    
+    return ssh_channel_new($self->{ssh_session});
+}
+
+sub channel_open_session {
+    my ($self, %options) = @_;
+    
+    return ssh_channel_open_session($options{channel});
+}
+
+sub channel_close {
+    my ($self, %options) = @_;
+    
+    return ssh_channel_close($options{channel});
+}
+
+sub channel_free {
+    my ($self, %options) = @_;
+    
+    return ssh_channel_free($options{channel});
+}
+
+sub channel_send_eof {
+    my ($self, %options) = @_;
+    
+    return ssh_channel_send_eof($options{channel});
+}
+
+sub channel_is_eof {
+    my ($self, %options) = @_;
+    
+    return ssh_channel_is_eof($options{channel});
+}
+
 sub DESTROY {
     my ($self) = @_;
 
     if (defined($self->{ssh_session})) {
+        foreach my $channel_id (keys %{$self->{channels}}) {
+            $self->close_channel(channel_id => $channel_id);
+        }
+    
         $self->disconnect();
         ssh_free($self->{ssh_session});
     }

@@ -6,6 +6,7 @@
 
 #include <errno.h>
 #include <libssh/libssh.h>
+#include "channel.h"
 
 /* C functions */
 
@@ -27,6 +28,12 @@ ssh_connect(ssh_session session)
         RETVAL = ssh_connect(session);
     OUTPUT: RETVAL
 
+socket_t
+ssh_get_fd(ssh_session session)
+    CODE:
+        RETVAL = ssh_get_fd(session);
+    OUTPUT: RETVAL
+    
 #
 # ssh_options_set functions
 #
@@ -185,6 +192,54 @@ NO_OUTPUT void
 ssh_key_free(ssh_key key)
     CODE:
         ssh_key_free(key);
+
+#
+# channel functions
+#
+
+ssh_channel
+ssh_channel_new(ssh_session session)
+    CODE:
+        RETVAL = ssh_channel_new(session);
+    OUTPUT: RETVAL
+
+int
+ssh_channel_open_session(ssh_channel channel)
+    CODE:
+        RETVAL = ssh_channel_open_session(channel);
+    OUTPUT: RETVAL
+
+NO_OUTPUT void
+ssh_channel_free(ssh_channel channel)
+    CODE:
+        ssh_channel_free(channel);
+
+int
+ssh_channel_close(ssh_channel channel)
+    CODE:
+        RETVAL = ssh_channel_close(channel);
+    OUTPUT: RETVAL
+
+int
+ssh_channel_send_eof(ssh_channel channel)
+    CODE:
+        RETVAL = ssh_channel_send_eof(channel);
+    OUTPUT: RETVAL
+
+int
+ssh_channel_is_eof(ssh_channel channel)
+    CODE:
+        RETVAL = ssh_channel_is_eof(channel);
+    OUTPUT: RETVAL
+
+char *
+ssh_channel_get_id(ssh_channel channel)
+    CODE:
+        char str[1024];
+        
+        sprintf(str, "%i:%i", channel->local_channel, channel->remote_channel);
+        RETVAL = str;
+    OUTPUT: RETVAL
 
 char *
 get_strerror()
