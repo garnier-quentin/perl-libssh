@@ -2,7 +2,6 @@
 - working on channels. function should use i think: 
   * ssh_channel_read_timeout 
   * ssh_channel_select
-- I think i can create a function to get a channel "ID" with integers: local_channel . ':' . remote_channel
 
 https://api.metacpan.org/source/DMAKI/ZMQ-LibZMQ3-1.19/xs/perl_libzmq3.xs
 

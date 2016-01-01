@@ -6,7 +6,16 @@
 
 #include <errno.h>
 #include <libssh/libssh.h>
+#include <libssh/callbacks.h>
 #include "channel.h"
+
+void my_channel_exit_status_function(ssh_session session, ssh_channel channel, int exit_status, void *userdata) {
+    printf("in callback===\n");
+}
+
+int my_channel_data_function(ssh_session session, ssh_channel channel, void *data, uint32_t len, int is_stderr, void *userdata) {
+    printf("in callback===\n");
+}
 
 /* C functions */
 
@@ -237,7 +246,7 @@ ssh_channel_get_id(ssh_channel channel)
     CODE:
         char str[1024];
         
-        sprintf(str, "%i:%i", channel->local_channel, channel->remote_channel);
+        snprintf(str, 1023, "%i:%i", channel->local_channel, channel->remote_channel);
         RETVAL = str;
     OUTPUT: RETVAL
 
@@ -247,7 +256,7 @@ ssh_channel_request_exec(ssh_channel channel, char *cmd)
         RETVAL = ssh_channel_request_exec(channel, cmd);
     OUTPUT: RETVAL
 
-int
+HV *
 ssh_channel_select_read(AV *list, int timeout)
     CODE:
         struct timeval tm;
@@ -260,7 +269,6 @@ ssh_channel_select_read(AV *list, int timeout)
         tm.tv_usec = 0;
         
         list_len = av_len(list) + 1;
-        printf("=== ici = %i===\n", list_len);
 
         Newxz(read_channels, list_len + 1, ssh_channel);
         for (i = 0; i < list_len; i++) {
@@ -277,14 +285,101 @@ ssh_channel_select_read(AV *list, int timeout)
         
         ret = ssh_channel_select(read_channels, NULL, NULL, &tm);
 
-        printf("ret = %i\n", ret);
+        HV *hv_ret = newHV();
+        AV *channel_ids = newAV();
+        char str[1024];
+        
+        (void)hv_store(hv_ret, "code", 4, newSViv(ret), 0);
+        for (i = 0; read_channels[i] != NULL; i++) {
+            int num = snprintf(str, 1023, "%i.%i:%i", ssh_get_fd(read_channels[i]->session), read_channels[i]->local_channel, read_channels[i]->remote_channel);
+            av_push(channel_ids, newSVpv(str, num));
+            printf("change on channel = %i/%i:%i\n", ssh_get_fd(read_channels[i]->session),
+                    read_channels[i]->local_channel, read_channels[i]->remote_channel);
+        }
+        
+        (void)hv_store(hv_ret, "channel_ids", 11, newRV_noinc((SV *)channel_ids), 0);
 
         Safefree(read_channels);
-        RETVAL = ret;
+        RETVAL = hv_ret;
+    OUTPUT: RETVAL
+
+HV *
+ssh_channel_read(ssh_channel channel, int buffer_size, int stderr)
+    CODE:
+        HV *hv_ret = newHV();
+        char *buffer;
+        int ret;
+        
+        Newxz(buffer, buffer_size + 1, char);
+        ret = ssh_channel_read(channel, buffer, buffer_size, stderr);
+        (void)hv_store(hv_ret, "code", 4, newSViv(ret), 0);
+        if (ret > 0) {
+            (void)hv_store(hv_ret, "message", 7, newSVpv(buffer, ret), 0);
+        } else {
+            (void)hv_store(hv_ret, "message", 7, newSV(0), 0);
+        }
+        
+        Safefree(buffer);
+        RETVAL = hv_ret;
+    OUTPUT: RETVAL
+
+int
+ssh_channel_get_exit_status(ssh_channel channel)
+    CODE:
+        RETVAL = ssh_channel_get_exit_status(channel);
     OUTPUT: RETVAL
 
 char *
 get_strerror()
     CODE:
         RETVAL = strerror(errno);
+    OUTPUT: RETVAL
+
+ 
+MODULE = Libssh::Session		PACKAGE = Libssh::Event
+
+# XS code
+
+PROTOTYPES: ENABLED
+    
+ssh_event
+ssh_event_new()
+    CODE:
+        RETVAL = ssh_event_new();
+    OUTPUT: RETVAL
+
+NO_OUTPUT void
+ssh_event_free(ssh_event event)
+    CODE:
+        ssh_event_free(event);
+
+int 
+ssh_event_add_session(ssh_event event, ssh_session session)
+    CODE:
+        RETVAL = ssh_event_add_session(event, session);
+    OUTPUT: RETVAL
+
+int
+ssh_event_remove_session(ssh_event event, ssh_session session)
+    CODE:
+        RETVAL = ssh_event_remove_session(event, session);
+    OUTPUT: RETVAL
+
+int
+ssh_event_dopoll(ssh_event event, int timeout)
+    CODE:
+        RETVAL = ssh_event_dopoll(event, timeout);
+    OUTPUT: RETVAL
+
+int
+ssh_channel_exit_status_callback(ssh_channel channel, char *userdata)
+    CODE:
+        struct ssh_channel_callbacks_struct cb = {
+            .userdata = NULL,
+            .channel_data_function = my_channel_data_function,
+            .channel_exit_status_function = my_channel_exit_status_function
+        };
+        
+        ssh_callbacks_init(&cb);
+        RETVAL = ssh_set_channel_callbacks(channel, &cb);
     OUTPUT: RETVAL

@@ -38,10 +38,16 @@ use constant SSH_AUTH_PARTIAL => 2;
 use constant SSH_AUTH_INFO => 3;
 use constant SSH_AUTH_AGAIN => 4;
 
+use constant SSH_NO_ERROR => 0;
+use constant SSH_REQUEST_DENIED => 1;
+use constant SSH_FATAL => 2;
+use constant SSH_EINTR => 3;
+
 our @EXPORT_OK = qw(
 SSH_OK SSH_ERROR SSH_AGAIN SSH_EOF
 SSH_LOG_NOLOG SSH_LOG_WARNING SSH_LOG_PROTOCOL SSH_LOG_PACKET SSH_LOG_FUNCTIONS
 SSH_AUTH_ERROR SSH_AUTH_SUCCESS SSH_AUTH_DENIED SSH_AUTH_PARTIAL SSH_AUTH_INFO SSH_AUTH_AGAIN
+SSH_NO_ERROR SSH_REQUEST_DENIED SSH_FATAL SSH_EINTR
 );
 our @EXPORT = qw();
 our %EXPORT_TAGS = ( 'all' => [ @EXPORT, @EXPORT_OK ] );
@@ -84,6 +90,12 @@ sub new {
     
     $self->{channels} = {};
     return $self;
+}
+
+sub get_session {
+    my ($self, %options) = @_;
+     
+    return $self->{ssh_session};
 }
 
 sub check_uint {
@@ -335,13 +347,27 @@ sub test_cmd {
     
     # launch requests
     my $arrays_channel = [];
-    foreach (@{$options{channel_ids}}) {    
+    foreach (@{$options{channel_ids}}) {
         $self->channel_request_exec(channel => ${$self->{channels}->{$_->{id}}},
                                     cmd => $_->{cmd});
         push @{$arrays_channel}, ${$self->{channels}->{$_->{id}}};
     }
     
-    ssh_channel_select_read($arrays_channel, 5);
+    my $ret = ssh_channel_select_read($arrays_channel, 5);
+    use Data::Dumper;
+    print Data::Dumper::Dumper($ret);
+    if ($ret->{code} == SSH_OK) {
+        foreach (@{$ret->{channel_ids}}) {
+            my ($session_id, $channel_id) = split /\./;
+            
+            my $result = ssh_channel_read(${$self->{channels}->{$channel_id}}, 4092, 0);
+            print Data::Dumper::Dumper($result);
+            
+            if (ssh_channel_is_eof(${$self->{channels}->{$channel_id}}) != 0) {
+                print Data::Dumper::Dumper(ssh_channel_get_exit_status(${$self->{channels}->{$channel_id}}));
+            }
+        }
+    }
 }
 
 sub open_channel {
@@ -360,6 +386,16 @@ sub open_channel {
     $self->{channels}->{$channel_id} = \$channel;
 
     return $channel_id;
+}
+
+sub get_channel {
+    my ($self, %options) = @_;
+    
+    if (!defined($options{channel_id}) || !defined($self->{channels}->{$options{channel_id}})) {
+        return undef;
+    }
+    
+    return $self->{channels}->{$options{channel_id}};
 }
 
 sub close_channel {
