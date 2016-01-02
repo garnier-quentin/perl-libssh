@@ -5,7 +5,7 @@ It supports the authentification on a SSH server and command execution.
 
 It's still in working progress.
 
-## MODULE DEPENDENCIES
+### MODULE DEPENDENCIES
 
 To install Libssh::Session, you need following perl module:
 
@@ -13,14 +13,14 @@ To install Libssh::Session, you need following perl module:
 
 For the module execution, no need of perl module dependencies.
 
-## DEPENDENCIES
+### DEPENDENCIES
 
 This module also requires these libraries:
 
 * [libssh](https://www.libssh.org/) (recommended to use version 0.7.0 or later)
 * OpenSSL
 
-## INSTALLATION
+### INSTALLATION
 
 To install Libssh::Session type the following:
 
@@ -30,7 +30,7 @@ To install Libssh::Session type the following:
 # make install
 ```
 
-## BUGS/FEATURE REQUESTS
+### BUGS/FEATURE REQUESTS
 
 Please report bugs and request features on the github : https://github.com/garnier-quentin/perl-libssh
 
