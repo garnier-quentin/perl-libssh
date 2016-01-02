@@ -1,3 +1,4 @@
+
 package Libssh::Event;
 
 use strict;
@@ -5,7 +6,7 @@ use warnings;
 use Exporter qw(import);
 use XSLoader;
 
-our $VERSION = '0.001';
+our $VERSION = '0.1';
 
 XSLoader::load('Libssh::Session', $VERSION);
 

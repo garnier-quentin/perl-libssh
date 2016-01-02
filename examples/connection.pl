@@ -2,6 +2,8 @@
 
 use strict;
 use warnings;
+use Data::Dumper;
+
 use Libssh::Session qw(:all);
 use Libssh::Event;
 
@@ -70,6 +72,8 @@ $session->execute(commands => [
                   ],
                   timeout => 60, timeout_nodata => 30, parallel => 4);
 
+print Data::Dumper::Dumper($session->execute_simple(cmd => 'ls', timeout => 60, timeout_nodata => 30));
+                  
 # Test event
 #my $event = Libssh::Event->new();
 #$event->add_session(session => $session);

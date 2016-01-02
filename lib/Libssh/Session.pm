@@ -1,3 +1,4 @@
+
 package Libssh::Session;
 
 use strict;
@@ -6,7 +7,7 @@ use Exporter qw(import);
 use XSLoader;
 use Time::HiRes;
 
-our $VERSION = '0.001';
+our $VERSION = '0.1';
 
 XSLoader::load('Libssh::Session', $VERSION);
 
@@ -172,14 +173,14 @@ sub option_logverbosity {
     return ssh_options_set_log_verbosity($self->{ssh_session}, $options{value});
 }
 
-sub option_raise_error {
+sub option_raiseerror {
     my ($self, %options) = @_;
     
     $self->{raise_error} = $options{value};
     return 0;
 }
 
-sub option_print_error {
+sub option_printerror {
     my ($self, %options) = @_;
     
     $self->{print_error} = $options{value};
@@ -306,6 +307,9 @@ sub connect {
 sub disconnect {
     my ($self) = @_;
     
+    foreach my $channel_id (keys %{$self->{channels}}) {
+        $self->close_channel(channel_id => $channel_id);
+    }
     if (ssh_is_connected($self->{ssh_session}) == 1) {
         ssh_disconnect($self->{ssh_session});
     }
@@ -374,7 +378,11 @@ sub add_command {
     
     my $channel_id = $self->open_channel();
     if ($channel_id !~ /^\d+\:\d+$/) {
-        $options{command}->{callback}->(exit => SSH_ERROR, error_msg => 'cannot init channel', session => $self);
+        if (defined($options{command}->{callback})) {
+            $options{command}->{callback}->(exit => SSH_ERROR, error_msg => 'cannot init channel', session => $self);
+        } else {
+            push @{$self->{store_no_callback}}, { exit => SSH_ERROR, error_msg => 'cannot init channel', session => $self };
+        }
         return undef;
     }
 
@@ -418,7 +426,8 @@ sub execute_read_channel {
     if (ssh_channel_is_eof($channel) != 0) {
         $self->{slots}->{$channel_id}->{exit_code} = ssh_channel_get_exit_status($channel);
         $self->close_channel(channel_id => $channel_id);
-        $self->{slots}->{$channel_id}->{callback}->(
+        
+        my %callback_options = (
             exit => SSH_OK,
             session => $self,
             exit_code => $self->{slots}->{$channel_id}->{exit_code},
@@ -426,13 +435,18 @@ sub execute_read_channel {
             stdout => $self->{slots}->{$channel_id}->{stdout},
             stderr => $self->{slots}->{$channel_id}->{stderr},
         );
+        if (defined($self->{slots}->{$channel_id}->{callback})) {
+            $self->{slots}->{$channel_id}->{callback}->(%callback_options);
+        } else {
+            push @{$self->{store_no_callback}}, \%callback_options;
+        }
         delete $self->{slots}->{$channel_id};
     } else {
         $self->{slots}->{$channel_id}->{read} = 1;
     }
 }
 
-sub execute {
+sub execute_internal {
     my ($self, %options) = @_;
     my $parallel = (defined($options{parallel}) && int($options{parallel}) > 0) ? 
         $options{parallel} : 4;
@@ -464,7 +478,7 @@ sub execute {
         my $now2 = Time::HiRes::time();
         
         # check timeout
-        my $seconds = ($now2 - $now) / 1000;
+        my $seconds = ($now2 - $now);
         foreach (keys %{$self->{slots}}) {
             $self->{slots}->{$_}->{timeout_counter} -= $seconds;
             if ($self->{slots}->{$_}->{read} == 0) {
@@ -474,7 +488,8 @@ sub execute {
             if ($self->{slots}->{$_}->{timeout_counter} <= 0 || 
                 $self->{slots}->{$_}->{timeout_nodata_counter} <= 0) {
                 $self->close_channel(channel_id => $_);
-                $self->{slots}->{$_}->{callback}->(
+
+                my %callback_options = (
                     exit => SSH_AGAIN,
                     session => $self,
                     exit_code => undef,
@@ -482,10 +497,34 @@ sub execute {
                     stdout => $self->{slots}->{$_}->{stdout},
                     stderr => $self->{slots}->{$_}->{stderr},
                 );
+                if (defined($self->{slots}->{$_}->{callback})) {
+                    $self->{slots}->{$_}->{callback}->(%callback_options);
+                } else {
+                    push @{$self->{store_no_callback}}, \%callback_options;
+                }
                 delete $self->{slots}->{$_};
             }
-        }        
+        }
     }
+}
+
+sub execute {
+    my ($self, %options) = @_;
+
+    $self->{store_no_callback} = [];
+    $self->execute_internal(%options);
+
+    return $self->{store_no_callback};
+}
+
+sub execute_simple {
+    my ($self, %options) = @_;
+
+    my $commands = [ { cmd => $options{cmd} } ];
+    $self->{store_no_callback} = [];
+    $self->execute_internal(%options, commands => $commands);
+
+    return pop(@{$self->{store_no_callback}});
 }
 
 sub open_channel {
@@ -591,10 +630,6 @@ sub DESTROY {
     my ($self) = @_;
 
     if (defined($self->{ssh_session})) {
-        foreach my $channel_id (keys %{$self->{channels}}) {
-            $self->close_channel(channel_id => $channel_id);
-        }
-    
         $self->disconnect();
         ssh_free($self->{ssh_session});
     }
@@ -633,6 +668,24 @@ Libssh::Session - Support for the SSH protocol via libssh.
   }
 
   print "== authentification succeeded\n";
+  
+  sub my_callback {
+    my (%options) = @_;
+    
+    print "================================================\n";
+    print "=== exit = " . $options{exit} . "\n";
+    if ($options{exit} == SSH_OK || $options{exit} == SSH_AGAIN) { # AGAIN means timeout
+        print "=== exit_code = " . $options{exit_code} . "\n";
+        print "=== userdata = " . $options{userdata} . "\n";
+        print "=== stdout = " . $options{stdout} . "\n";
+        print "=== stderr = " . $options{stderr} . "\n";
+    } else {
+        printf("error: %s\n", $session->error(GetErrorSession => 1));
+    }
+    print "================================================\n";
+    
+    #$options{session}->add_command(command => { cmd => 'ls -l', callback => \&my_callback, userdata => 'cmd 3'});
+  }
 
   $session->execute(commands => [ 
                     { cmd => 'ls -l', callback => \&my_callback, userdata => 'cmd 1'},
@@ -646,6 +699,8 @@ Libssh::Session - Support for the SSH protocol via libssh.
 C<Libssh::Session> is a perl interface to the libssh (L<http://www.libssh.org>)
 library. It doesn't support all the library. It's working in progress.
 
+Right now, you can authenticate and execute commands on a SSH server.
+
 =head1 METHODS
 
 =over 4
@@ -656,24 +711,148 @@ Create new Session object:
 
     my $session = Libssh::Session->new();
 
+
+=item auth_publickey_auto ([ OPTIONS ])
+
+Tries to automatically authenticate with public key and "none". returns SSH_AUTH_SUCCESS if it succeeds.
+
+C<OPTIONS> are passed in a hash like fashion, using key and value pairs. Possible options are:
+
+B<passphrase> - passphrase for the private key (if it's needed. Otherwise don't set the option).
+
+
+=item auth_password ([ OPTIONS ])
+
+Try to authenticate by password. returns SSH_AUTH_SUCCESS if it succeeds.
+
+C<OPTIONS> are passed in a hash like fashion, using key and value pairs. Possible options are:
+
+B<password> - passphrase for the private key (if it's needed. Otherwise don't set the option).
+
+
+=item auth_none ([ OPTIONS ])
+
+Try to authenticate through the "none" method. returns SSH_AUTH_SUCCESS if it succeeds.
+
+
+=item connect ([ OPTIONS ])
+
+Connect to the ssh server. returns SSH_OK if no error.
+By default, the connect does the server check verification.
+
+C<OPTIONS> are passed in a hash like fashion, using key and value pairs. Possible options are:
+
+B<connect_only> - Set the value to '1' if you want to do the server check verification yourself.
+
+B<SkipKeyProblem> - Returns SSH_OK even if there is a problem (server known changed or server found other) with the ssh server (set by default. Set '0' to disable).
+
+
+=item disconnect ()
+
+Disconnect from a session. The session can then be reused to open a new session.
+
+The method take care of the current open channels.
+
+B<Warning>: in many case, you should let the destructor do it!
+
+
+=item execute_simple ([ OPTIONS ])
+
+Execute a single command. Returns a reference to a hash table.
+
+C<OPTIONS> are passed in a hash like fashion, using key and value pairs. Possible options are:
+
+B<cmd> - The command to execute.
+
+B<timeout> - Set the timeout in seconds for the global command execution (By default: 300).
+
+B<timeout_nodata> - Set the timeout in seconds for no data received (By default: 120).
+
+The hash table returned has the following attributes:
+
+B<exit> - SSH_ERROR in case of failure. SSH_AGAIN in case of timeout. SSH_OK otherwise.
+
+B<exit_code> - The exit code of the command executed. undef when timeout.
+
+B<stdout> - The stdout of the executed command.
+
+B<stderr> - The stderr of the executed command.
+
+
+=item execute ([ OPTIONS ])
+
+Execute multiple commands. If an error occured, please look how to handle it with the callback functions.
+
+C<OPTIONS> are passed in a hash like fashion, using key and value pairs. Possible options are:
+
+B<commands> - Reference to an array of hashes.
+
+B<timeout> - Set the timeout in seconds for the global command execution (By default: 300). Each command has its own timeout.
+
+B<timeout_nodata> - Set the timeout in seconds for no data received (By default: 120). Each command has its own timeout.
+
+B<parallel> - Set the number of parallel commands launched (By default: 4).
+
+B<Warning>: Execution times of callbacks count in timeout! Maybe you should save the datas and manages after the execute function.
+
+Look the example above to see how to set the array for B<commands>. 
+
+
 =item error ( )
 
-Returns the last error message; returns undef if no error.
+Returns the last error message. returns undef if no error.
 
-=item get_server_publickey ( )
-
-Returns the server public key. if an error occured, undef is returned.
-
-B<Warning>: should be used if you know whare are you doing!
 
 =item get_publickey_hash ([ OPTIONS ])
 
-Get a hash of the public key. if an error occured, undef is returned.
+Get a hash of the public key. If an error occured, undef is returned.
 
 C<OPTIONS> are passed in a hash like fashion, using key and value pairs. Possible options are:
 
 B<Type> - Hash type to used. Default: SSH_PUBLICKEY_HASH_SHA1. Can be: SSH_PUBLICKEY_HASH_MD5.
 
+
+=item get_server_publickey ( )
+
+Returns the server public key. If an error occured, undef is returned.
+
+B<Warning>: should be used if you know what are you doing!
+
+
+=item options ([ OPTIONS ])
+
+Set options for the ssh session. If an error occured, 0 is returned.
+
+C<OPTIONS> are passed in a hash like fashion, using key and value pairs. Possible options are:
+
+B<Host> - The hostname or ip address to connect to.
+
+B<User> - The username for authentication.
+
+B<Port> - The port to connect to.
+
+B<Timeout> - Set a timeout for the connection in seconds.
+
+B<LogVerbosity> - Set the session logging verbosity (can be: SSH_LOG_NOLOG, SSH_LOG_RARE,...)
+
+B<SshDir> - Set the ssh directory. The ssh directory is used for files like known_hosts and identity (private and public key). It may include "%s" which will be replaced by the user home directory.
+
+B<KnownHosts> - Set the known hosts file name.
+
+B<Identity> - Set the identity file name (By default identity, id_dsa and id_rsa are checked).
+
+B<RaiseError> - Die if there is an error (By default: 0).
+
+B<PrintError> - print in stdout if there is an error (By default: 0).
+
 =back
+
+=head1 LICENSE
+
+This library is licensed under the Apache License 2.0. Details of this license can be found within the 'LICENSE' text file
+
+=head1 AUTHOR
+
+Quentin Garnier <qgarnier@centreon.com>
 
 =cut
