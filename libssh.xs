@@ -95,6 +95,12 @@ ssh_options_set_knownhosts(ssh_session session, char *knownhosts)
     OUTPUT: RETVAL
 
 int
+ssh_options_set_identity(ssh_session session, char *identity)
+    CODE:
+        RETVAL = ssh_options_set(session, SSH_OPTIONS_IDENTITY, identity);
+    OUTPUT: RETVAL
+
+int
 ssh_options_set_log_verbosity(ssh_session session, int verbosity)
     CODE:
         RETVAL = ssh_options_set(session, SSH_OPTIONS_LOG_VERBOSITY, &verbosity);
@@ -108,6 +114,16 @@ int
 ssh_userauth_password(ssh_session session, char *password)
     CODE:
         RETVAL = ssh_userauth_password(session, NULL, password);
+    OUTPUT: RETVAL
+
+int
+ssh_userauth_publickey_auto(ssh_session session, char *passphrase, int passdefined)
+    CODE:
+        if (passdefined == 1) {
+            RETVAL = ssh_userauth_publickey_auto(session, NULL, passphrase);
+        } else {
+            RETVAL = ssh_userauth_publickey_auto(session, NULL, NULL);
+        }
     OUTPUT: RETVAL
 
 int

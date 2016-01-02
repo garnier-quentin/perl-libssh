@@ -1,4 +1,3 @@
-- working on authentification pubkey : http://api.libssh.org/master/libssh_tutor_authentication.html#authentication_details
 - working on waitfor and write on a channel (without a shell)
 - multiple execution with multiple sessions
 - try to do events working

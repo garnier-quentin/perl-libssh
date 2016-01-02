@@ -22,15 +22,16 @@ if ($session->connect() != SSH_OK) {
     exit(1);
 }
 
-my $fd = $session->get_fd();
-print "== socket descriptor : " . $fd . "\n";
-
 # wrong password
 #if ($session->auth_password(password => $ssh_pass_wrong) != SSH_AUTH_SUCCESS) {
 #    printf("auth issue: %s\n", $session->error(GetErrorSession => 1));
 #}
-if ($session->auth_password(password => $ssh_pass_good) != SSH_AUTH_SUCCESS) {
-    printf("auth issue: %s\n", $session->error(GetErrorSession => 1));
+if ($session->auth_publickey_auto() != SSH_AUTH_SUCCESS) {
+    printf("auth issue pubkey: %s\n", $session->error(GetErrorSession => 1));
+    if ($session->auth_password(password => $ssh_pass_good) != SSH_AUTH_SUCCESS) {
+        printf("auth issue: %s\n", $session->error(GetErrorSession => 1));
+        exit(1);
+    }
     exit(1);
 }
 

@@ -159,6 +159,12 @@ sub option_knownhosts {
     return ssh_options_knownhosts($self->{ssh_session}, $options{value});
 }
 
+sub option_identity {
+    my ($self, %options) = @_;
+    
+    return ssh_options_set_identity($self->{ssh_session}, $options{value});
+}
+
 sub option_logverbosity {
     my ($self, %options) = @_;
     
@@ -309,6 +315,22 @@ sub auth_password {
     my ($self, %options) = @_;
 
     my $ret = ssh_userauth_password($self->{ssh_session}, $options{password});
+    if ($ret == SSH_AUTH_ERROR) {
+        $self->set_err(msg => sprintf("authentification failed: %s", ssh_get_error_from_session($self->{ssh_session})));
+    }
+
+    return $ret;
+}
+
+sub auth_publickey_auto {
+    my ($self, %options) = @_;
+    my $pass_defined = 1;
+    
+    if (!defined($options{passphrase})) {
+        $options{passphrase} = '';
+        $pass_defined = 0;
+    }
+    my $ret = ssh_userauth_publickey_auto($self->{ssh_session}, $options{passphrase}, $pass_defined);
     if ($ret == SSH_AUTH_ERROR) {
         $self->set_err(msg => sprintf("authentification failed: %s", ssh_get_error_from_session($self->{ssh_session})));
     }
@@ -604,8 +626,19 @@ Libssh::Session - Support for the SSH protocol via libssh.
     print $session->error() . "\n";
     exit(1);
   }
+  
+  if ($session->auth_password(password => "password") != SSH_AUTH_SUCCESS) {
+    printf("auth issue: %s\n", $session->error(GetErrorSession => 1));
+    exit(1);
+  }
 
-  print "=== ssh connection success ===\n";
+  print "== authentification succeeded\n";
+
+  $session->execute(commands => [ 
+                    { cmd => 'ls -l', callback => \&my_callback, userdata => 'cmd 1'},
+                    { cmd => 'ls wanterrormsg', callback => \&my_callback, userdata => 'cmd 2 error'},
+                  ],
+                  timeout => 60, timeout_nodata => 30, parallel => 4);
   exit(0);
 
 =head1 DESCRIPTION
