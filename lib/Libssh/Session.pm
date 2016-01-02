@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use Exporter qw(import);
 use XSLoader;
+use Time::HiRes;
 
 our $VERSION = '0.001';
 
@@ -342,31 +343,126 @@ sub get_issue_banner {
 # Channel functions
 #
 
-sub test_cmd {
+sub add_command {
+    my ($self, %options) = @_;
+    my $timeout = (defined($options{timeout}) && int($options{timeout}) > 0) ? 
+        $options{timeout} : 300;
+    my $timeout_nodata = (defined($options{timeout_nodata}) && int($options{timeout_nodata}) > 0) ? 
+        $options{timeout_nodata} : 120;
+    
+    my $channel_id = $self->open_channel();
+    if ($channel_id !~ /^\d+\:\d+$/) {
+        $options{command}->{callback}->(exit => SSH_ERROR, error_msg => 'cannot init channel', session => $self);
+        return undef;
+    }
+
+    $self->{slots}->{$channel_id} = $options{command};
+    $self->{slots}->{$channel_id}->{timeout_counter} = $timeout;
+    $self->{slots}->{$channel_id}->{timeout_nodata_counter} = $timeout_nodata;
+    $self->{slots}->{$channel_id}->{stdout} = '';
+    $self->{slots}->{$channel_id}->{stderr} = '';
+    $self->{slots}->{$channel_id}->{read} = 0;
+    
+    $self->channel_request_exec(channel => ${$self->{channels}->{$channel_id}},
+                                cmd => $options{command}->{cmd});
+}
+
+sub execute_read_channel {
     my ($self, %options) = @_;
     
-    # launch requests
-    my $arrays_channel = [];
-    foreach (@{$options{channel_ids}}) {
-        $self->channel_request_exec(channel => ${$self->{channels}->{$_->{id}}},
-                                    cmd => $_->{cmd});
-        push @{$arrays_channel}, ${$self->{channels}->{$_->{id}}};
+    my $channel = ${$self->{channels}->{$options{channel_id}}};
+    my $channel_id = $options{channel_id};
+
+    # read stdout
+    while (1) {
+        my $result = ssh_channel_read($channel, 4092, 0, 1);
+        if (defined($result->{message})) {
+            $self->{slots}->{$channel_id}->{stdout} .= $result->{message};
+        }
+
+        last if ($result->{code} != 4092);
     }
     
-    my $ret = ssh_channel_select_read($arrays_channel, 5);
-    use Data::Dumper;
-    print Data::Dumper::Dumper($ret);
-    if ($ret->{code} == SSH_OK) {
-        foreach (@{$ret->{channel_ids}}) {
-            my ($session_id, $channel_id) = split /\./;
-            
-            my $result = ssh_channel_read(${$self->{channels}->{$channel_id}}, 4092, 0);
-            print Data::Dumper::Dumper($result);
-            
-            if (ssh_channel_is_eof(${$self->{channels}->{$channel_id}}) != 0) {
-                print Data::Dumper::Dumper(ssh_channel_get_exit_status(${$self->{channels}->{$channel_id}}));
+    # read stderr
+    while (1) {
+        my $result = ssh_channel_read($channel, 4092, 1, 1);
+        if (defined($result->{message})) {
+            $self->{slots}->{$channel_id}->{stderr} .= $result->{message};
+        }
+        
+        last if ($result->{code} != 4092);
+    }
+    
+    if (ssh_channel_is_eof($channel) != 0) {
+        $self->{slots}->{$channel_id}->{exit_code} = ssh_channel_get_exit_status($channel);
+        $self->close_channel(channel_id => $channel_id);
+        $self->{slots}->{$channel_id}->{callback}->(
+            exit => SSH_OK,
+            session => $self,
+            exit_code => $self->{slots}->{$channel_id}->{exit_code},
+            userdata => $self->{slots}->{$channel_id}->{userdata},
+            stdout => $self->{slots}->{$channel_id}->{stdout},
+            stderr => $self->{slots}->{$channel_id}->{stderr},
+        );
+        delete $self->{slots}->{$channel_id};
+    } else {
+        $self->{slots}->{$channel_id}->{read} = 1;
+    }
+}
+
+sub execute {
+    my ($self, %options) = @_;
+    my $parallel = (defined($options{parallel}) && int($options{parallel}) > 0) ? 
+        $options{parallel} : 4;
+    
+    $self->{slots} = {};
+    $self->{channels_array} = [];
+    while (1) {
+        while (scalar(keys %{$self->{slots}}) < $parallel && scalar(@{$options{commands}}) > 0) {
+            $self->add_command(command => shift(@{$options{commands}}), %options);
+        }
+        
+        last if (scalar(keys %{$self->{slots}}) == 0);
+        
+        my @chanels_array = ();
+        foreach (keys %{$self->{slots}}) {
+            $self->{slots}->{$_}->{read} = 0;
+            push @chanels_array, ${$self->{channels}->{$_}};
+        }
+        
+        my $now = Time::HiRes::time();
+        my $ret = ssh_channel_select_read(\@chanels_array, 5);
+        if ($ret->{code} == SSH_OK) {
+            foreach (@{$ret->{channel_ids}}) {
+                my ($session_id, $channel_id) = split /\./;
+                
+                $self->execute_read_channel(channel_id => $channel_id);
             }
         }
+        my $now2 = Time::HiRes::time();
+        
+        # check timeout
+        my $seconds = ($now2 - $now) / 1000;
+        foreach (keys %{$self->{slots}}) {
+            $self->{slots}->{$_}->{timeout_counter} -= $seconds;
+            if ($self->{slots}->{$_}->{read} == 0) {
+                $self->{slots}->{$_}->{timeout_nodata_counter} -= $seconds;
+            }
+            
+            if ($self->{slots}->{$_}->{timeout_counter} <= 0 || 
+                $self->{slots}->{$_}->{timeout_nodata_counter} <= 0) {
+                $self->close_channel(channel_id => $_);
+                $self->{slots}->{$_}->{callback}->(
+                    exit => SSH_AGAIN,
+                    session => $self,
+                    exit_code => undef,
+                    userdata => $self->{slots}->{$_}->{userdata},
+                    stdout => $self->{slots}->{$_}->{stdout},
+                    stderr => $self->{slots}->{$_}->{stderr},
+                );
+                delete $self->{slots}->{$_};
+            }
+        }        
     }
 }
 
@@ -411,6 +507,16 @@ sub close_channel {
     delete $self->{channels}->{$options{channel_id}};
 }
 
+sub is_closed_channel {
+    my ($self, %options) = @_;
+    
+    if (!defined($options{channel_id}) || !defined($self->{channels}->{$options{channel_id}})) {
+        return undef;
+    }
+    
+    return $self->channel_close(channel => ${$self->{channels}->{$options{channel_id}}});;
+}
+
 sub channel_new {
     my ($self, %options) = @_;
     
@@ -451,6 +557,12 @@ sub channel_is_eof {
     my ($self, %options) = @_;
     
     return ssh_channel_is_eof($options{channel});
+}
+
+sub channel_is_closed {
+    my ($self, %options) = @_;
+    
+    return ssh_channel_is_closed($options{channel});
 }
 
 sub DESTROY {

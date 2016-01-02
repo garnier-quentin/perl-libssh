@@ -9,12 +9,17 @@
 #include <libssh/callbacks.h>
 #include "channel.h"
 
+void my_channel_close_function(ssh_session session, ssh_channel channel, void *userdata) {
+    printf("in callback close===\n");
+}
+
 void my_channel_exit_status_function(ssh_session session, ssh_channel channel, int exit_status, void *userdata) {
-    printf("in callback===\n");
+    printf("in callback exit===\n");
 }
 
 int my_channel_data_function(ssh_session session, ssh_channel channel, void *data, uint32_t len, int is_stderr, void *userdata) {
-    printf("in callback===\n");
+    printf("in callback data = %s ==\n", (char *)data);
+    return 0;
 }
 
 /* C functions */
@@ -230,6 +235,12 @@ ssh_channel_close(ssh_channel channel)
     OUTPUT: RETVAL
 
 int
+ssh_channel_is_closed(ssh_channel channel)
+    CODE:
+        RETVAL = ssh_channel_is_closed(channel);
+    OUTPUT: RETVAL
+
+int
 ssh_channel_send_eof(ssh_channel channel)
     CODE:
         RETVAL = ssh_channel_send_eof(channel);
@@ -293,8 +304,6 @@ ssh_channel_select_read(AV *list, int timeout)
         for (i = 0; read_channels[i] != NULL; i++) {
             int num = snprintf(str, 1023, "%i.%i:%i", ssh_get_fd(read_channels[i]->session), read_channels[i]->local_channel, read_channels[i]->remote_channel);
             av_push(channel_ids, newSVpv(str, num));
-            printf("change on channel = %i/%i:%i\n", ssh_get_fd(read_channels[i]->session),
-                    read_channels[i]->local_channel, read_channels[i]->remote_channel);
         }
         
         (void)hv_store(hv_ret, "channel_ids", 11, newRV_noinc((SV *)channel_ids), 0);
@@ -304,14 +313,18 @@ ssh_channel_select_read(AV *list, int timeout)
     OUTPUT: RETVAL
 
 HV *
-ssh_channel_read(ssh_channel channel, int buffer_size, int stderr)
+ssh_channel_read(ssh_channel channel, int buffer_size, int stderr, int nonblocking)
     CODE:
         HV *hv_ret = newHV();
         char *buffer;
         int ret;
         
         Newxz(buffer, buffer_size + 1, char);
-        ret = ssh_channel_read(channel, buffer, buffer_size, stderr);
+        if (nonblocking == 1) {
+            ret = ssh_channel_read_nonblocking(channel, buffer, buffer_size, stderr);
+        } else {
+            ret = ssh_channel_read(channel, buffer, buffer_size, stderr);
+        }
         (void)hv_store(hv_ret, "code", 4, newSViv(ret), 0);
         if (ret > 0) {
             (void)hv_store(hv_ret, "message", 7, newSVpv(buffer, ret), 0);
@@ -379,7 +392,6 @@ ssh_channel_exit_status_callback(ssh_channel channel, char *userdata)
             .channel_data_function = my_channel_data_function,
             .channel_exit_status_function = my_channel_exit_status_function
         };
-        
         ssh_callbacks_init(&cb);
         RETVAL = ssh_set_channel_callbacks(channel, &cb);
     OUTPUT: RETVAL

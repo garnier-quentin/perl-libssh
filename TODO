@@ -1,19 +1,4 @@
 - working on authentification pubkey : http://api.libssh.org/master/libssh_tutor_authentication.html#authentication_details
-- working on channels. function should use i think: 
-  * ssh_channel_read_timeout 
-  * ssh_channel_select
-
-https://api.metacpan.org/source/DMAKI/ZMQ-LibZMQ3-1.19/xs/perl_libzmq3.xs
-
-we could init function (and after capture. Like that we can set the IDs):
-- args : [ { command => '', callback => &toto }, { command => '', callback => &tata } ], 
-           timeout => xxx, timeout_nodata => xxx, callback_direct => 1|0 
-  callback_direct means: wait or not to all commands to be finished           
-  return: array ref with "command id" (channel), 'undef' for a problem.
-
-For the callback:
-- args: $session_fd (can be useful for many sessions), $id, $state, $stdout, $exit
-  $state = timeout or not
-  
-Maybe i'll do it in perl. Only wrap ssh_channel_select and ssh_channel_read_timeout (and not doing sub call in C).
-Don't think it will be a big win in perf.
+- working on waitfor and write on a channel (without a shell)
+- multiple execution with multiple sessions
+- try to do events working

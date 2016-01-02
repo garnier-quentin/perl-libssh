@@ -39,26 +39,43 @@ print "== authentification succeeded\n";
 my $banner = $session->get_issue_banner();
 printf("== server banner: %s\n", defined($banner) ? $banner : '-');
 
-my $channel_id = $session->open_channel();
-print "=== channel id = " . $channel_id . "\n";
+sub my_callback {
+    my (%options) = @_;
+    
+    print "================================================\n";
+    print "=== exit = " . $options{exit} . "\n";
+    if ($options{exit} == SSH_OK || $options{exit} == SSH_AGAIN) { # AGAIN means timeout
+        print "=== exit_code = " . $options{exit_code} . "\n";
+        print "=== userdata = " . $options{userdata} . "\n";
+        print "=== stdout = " . $options{stdout} . "\n";
+        print "=== stderr = " . $options{stderr} . "\n";
+    } else {
+        printf("error: %s\n", $session->error(GetErrorSession => 1));
+    }
+    print "================================================\n";
+    
+    #$options{session}->add_command(command => { cmd => 'ls -l', callback => \&my_callback, userdata => 'cmd 3'});
+}
 
-my $channel_id2 = $session->open_channel();
-print "=== channel id = " . $channel_id2 . "\n";
+$session->execute(commands => [ 
+                    { cmd => 'ls -l', callback => \&my_callback, userdata => 'cmd 1'},
+                    { cmd => 'ls pokdpsqkodsq', callback => \&my_callback, userdata => 'cmd 2 error'},
+                    { cmd => 'ls -l', callback => \&my_callback, userdata => 'cmd 3'},
+                    { cmd => 'ls -l', callback => \&my_callback, userdata => 'cmd 4'},
+                    { cmd => 'ls -l', callback => \&my_callback, userdata => 'cmd 5'},
+                    { cmd => 'ls -l', callback => \&my_callback, userdata => 'cmd 6'},
+                    { cmd => 'ls -l; sleep 20; ls -l; sleep 20; ls -l; sleep 20; ', callback => \&my_callback, userdata => 'cmd timeout'},
+                    { cmd => 'sleep 40', callback => \&my_callback, userdata => 'cmd timeout no data'},
+                  ],
+                  timeout => 60, timeout_nodata => 30, parallel => 4);
 
 # Test event
 #my $event = Libssh::Event->new();
 #$event->add_session(session => $session);
 #$event->add_channel_exit_status_callback(channel => $session->get_channel(channel_id => $channel_id));
 
-$session->test_cmd(channel_ids => [ { id => $channel_id, cmd => 'ls -l' },
-                                    { id => $channel_id2, cmd => 'sleep 20' },
-                                  ]);
-
-$channel_id = $session->open_channel();
-print "=== channel id = " . $channel_id . "\n";
-$channel_id = $session->open_channel();
-print "=== channel id = " . $channel_id . "\n";
-
-#printf("dopoll ret value = %s\n", $event->dopoll(timeout => 30000));
+#do {
+#    printf("dopoll ret value = %s\n", $event->dopoll(timeout => 30000));
+#} while (!$session->is_closed_channel(channel_id => $channel_id));
 
 exit(0);
