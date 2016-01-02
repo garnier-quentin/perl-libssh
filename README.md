@@ -7,4 +7,4 @@ Right now, you can:
 * authenticate (password or pubkey) on a SSH server
 * execute multiple commands (parallel)
 
-[See code example](./example/connection.pl)
+[See code example](./examples/connection.pl)
