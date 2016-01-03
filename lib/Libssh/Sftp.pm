@@ -162,6 +162,8 @@ sub list_dir {
         return SSH_ERROR;
     }
     
+    use Data::Dumper;
+    print Data::Dumper::Dumper(test_attribute($self->{sftp_session}, '/root/test.pl'));
     
     return SSH_OK;
 }

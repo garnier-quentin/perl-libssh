@@ -10,6 +10,8 @@
 #include <libssh/callbacks.h>
 #include "channel.h"
 
+/* C functions */
+
 void my_channel_close_function(ssh_session session, ssh_channel channel, void *userdata) {
     printf("in callback close===\n");
 }
@@ -23,7 +25,38 @@ int my_channel_data_function(ssh_session session, ssh_channel channel, void *dat
     return 0;
 }
 
-/* C functions */
+void store_attributes_inHV(sftp_attributes attributes, HV *hv) {
+    dTHX;
+
+    (void)hv_store(hv, "size", 4, newSViv(attributes->size), 0);
+    (void)hv_store(hv, "type", 4, newSViv(attributes->type), 0);
+    (void)hv_store(hv, "flags", 5, newSViv(attributes->flags), 0);
+    (void)hv_store(hv, "uid", 3, newSViv(attributes->uid), 0);
+    (void)hv_store(hv, "gid", 3, newSViv(attributes->gid), 0);
+    (void)hv_store(hv, "mtime", 5, newSViv(attributes->mtime), 0);
+    (void)hv_store(hv, "permissions", 11, newSViv(attributes->permissions), 0);
+        
+    if (attributes->owner != NULL) {
+        (void)hv_store(hv, "owner", 5, newSVpv(attributes->owner, strlen(attributes->owner)), 0);
+    } else {
+        (void)hv_store(hv, "owner", 5, newSV(0), 0);
+    }
+    
+    if (attributes->group != NULL) {
+        (void)hv_store(hv, "group", 5, newSVpv(attributes->group, strlen(attributes->group)), 0);
+    } else {
+        (void)hv_store(hv, "group", 5, newSV(0), 0);
+    }
+    
+    // it's null when we use sftp_lstat
+    if (attributes->name != NULL) {
+        (void)hv_store(hv, "name", 4, newSVpv(attributes->name, strlen(attributes->name)), 0);
+    } else {
+        (void)hv_store(hv, "name", 4, newSV(0), 0);
+    }
+    
+    sftp_attributes_free(attributes);
+}
 
 MODULE = Libssh::Session		PACKAGE = Libssh::Session
 
@@ -441,3 +474,16 @@ NO_OUTPUT void
 sftp_free(sftp_session sftp)
     CODE:
         sftp_free(sftp);
+
+HV *
+test_attribute(sftp_session sftp, char *file)
+    CODE:
+        HV *hv_ret = newHV();
+        sftp_attributes attributes;
+        
+        attributes = sftp_lstat(sftp, file);
+        if (attributes != NULL) {
+            store_attributes_inHV(attributes, hv_ret);
+        }
+        RETVAL = hv_ret;
+    OUTPUT: RETVAL
