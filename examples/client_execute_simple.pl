@@ -10,7 +10,7 @@ my $ssh_user = "root";
 my $ssh_pass = "centreon";
 
 my $session = Libssh::Session->new();
-if (!$session->options(host => $ssh_host, port => $ssh_port, user => $ssh_user)) {
+if ($session->options(host => $ssh_host, port => $ssh_port, user => $ssh_user) != SSH_OK) {
     print $session->error() . "\n";
     exit(1);
 }

@@ -205,16 +205,16 @@ sub options {
             $ret = $func->($self, value => $options{$key});
         } else {
             $self->set_err(msg => sprintf("option '%s' is not supported", $key));
-            return 0;
+            return SSH_ERROR;
         }
-        if ($ret != 0) {
+        if ($ret != SSH_OK) {
             # error from libssh (< 0)
             $self->set_err(msg => sprintf("option '%s' failed: %s", $key, ssh_get_error_from_session($self->{ssh_session}))) if ($ret < 0);
-            return 0;
+            return $ret;
         }
     }
     
-    return 1;
+    return SSH_OK;
 }
 
 sub get_server_publickey {
@@ -838,7 +838,7 @@ B<Warning>: should be used if you know what are you doing!
 
 =item options ([ OPTIONS ])
 
-Set options for the ssh session. If an error occured, 0 is returned.
+Set options for the ssh session. If an error occured, != SSH_OK is returned.
 
 C<OPTIONS> are passed in a hash like fashion, using key and value pairs. Possible options are:
 

@@ -82,15 +82,15 @@ sub options {
             $ret = $func->($self, value => $options{$key});
         } else {
             $self->set_err(msg => sprintf("option '%s' is not supported", $key));
-            return 0;
+            return SSH_ERROR;
         }
         if ($ret != 0) {
             $self->set_err(msg => sprintf("option '%s' failed: %s", $key)) if ($ret < 0);
-            return 0;
+            return $ret;
         }
     }
     
-    return 1;
+    return SSH_OK;
 }
 
 sub add_session {
