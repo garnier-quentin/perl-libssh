@@ -6,6 +6,7 @@
 
 #include <errno.h>
 #include <libssh/libssh.h>
+#include <libssh/sftp.h>
 #include <libssh/callbacks.h>
 #include "channel.h"
 
@@ -411,3 +412,32 @@ ssh_channel_exit_status_callback(ssh_channel channel, char *userdata)
         ssh_callbacks_init(&cb);
         RETVAL = ssh_set_channel_callbacks(channel, &cb);
     OUTPUT: RETVAL
+
+MODULE = Libssh::Session		PACKAGE = Libssh::Sftp
+
+# XS code
+
+PROTOTYPES: ENABLED
+
+sftp_session
+sftp_new(ssh_session session)
+    CODE:
+        RETVAL = sftp_new(session);
+    OUTPUT: RETVAL
+
+int
+sftp_init(sftp_session sftp)
+    CODE:
+        RETVAL = sftp_init(sftp);
+    OUTPUT: RETVAL
+    
+int
+sftp_get_error(sftp_session sftp)
+    CODE:
+        RETVAL = sftp_get_error(sftp);
+    OUTPUT: RETVAL
+
+NO_OUTPUT void
+sftp_free(sftp_session sftp)
+    CODE:
+        sftp_free(sftp);

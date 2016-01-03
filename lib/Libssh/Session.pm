@@ -7,7 +7,7 @@ use Exporter qw(import);
 use XSLoader;
 use Time::HiRes;
 
-our $VERSION = '0.1';
+our $VERSION = '0.2';
 
 XSLoader::load('Libssh::Session', $VERSION);
 
@@ -90,6 +90,7 @@ sub new {
         return undef;
     }
     
+    $self->{authenticated} = 0;
     $self->{channels} = {};
     return $self;
 }
@@ -98,6 +99,12 @@ sub get_session {
     my ($self, %options) = @_;
      
     return $self->{ssh_session};
+}
+
+sub get_error {
+    my ($self, %options) = @_;
+    
+    return ssh_get_error_from_session($self->{ssh_session});
 }
 
 sub check_uint {
@@ -313,6 +320,13 @@ sub disconnect {
     if (ssh_is_connected($self->{ssh_session}) == 1) {
         ssh_disconnect($self->{ssh_session});
     }
+    $self->{authenticated} = 0;
+}
+
+sub is_authenticated {
+    my ($self, %options) = @_;
+    
+    return $self->{authenticated};
 }
 
 sub auth_password {
@@ -322,6 +336,7 @@ sub auth_password {
     if ($ret == SSH_AUTH_ERROR) {
         $self->set_err(msg => sprintf("authentification failed: %s", ssh_get_error_from_session($self->{ssh_session})));
     }
+    $self->{authenticated} = 1 if ($ret == SSH_OK);
 
     return $ret;
 }
@@ -338,6 +353,7 @@ sub auth_publickey_auto {
     if ($ret == SSH_AUTH_ERROR) {
         $self->set_err(msg => sprintf("authentification failed: %s", ssh_get_error_from_session($self->{ssh_session})));
     }
+    $self->{authenticated} = 1 if ($ret == SSH_OK);
 
     return $ret;
 }
@@ -349,6 +365,7 @@ sub auth_none {
     if ($ret == SSH_AUTH_ERROR) {
         $self->set_err(msg => sprintf("authentification failed: %s", ssh_get_error_from_session($self->{ssh_session})));
     }
+    $self->{authenticated} = 1 if ($ret == SSH_OK);
 
     return $ret;
 }
