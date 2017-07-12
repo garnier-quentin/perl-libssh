@@ -7,7 +7,6 @@
 #include <errno.h>
 #include <libssh/libssh.h>
 #include <libssh/sftp.h>
-#include <libssh/callbacks.h>
 #include "channel.h"
 
 /* C functions */
