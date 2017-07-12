@@ -20,6 +20,8 @@ enum ssh_channel_state_e {
   SSH_CHANNEL_STATE_CLOSED
 };
 
+typedef struct ssh_channel_callbacks_struct *ssh_channel_callbacks;
+
 struct ssh_channel_struct {
     ssh_session session; /* SSH_SESSION pointer */
     uint32_t local_channel;
