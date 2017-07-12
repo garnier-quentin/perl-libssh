@@ -12,19 +12,6 @@
 
 /* C functions */
 
-void my_channel_close_function(ssh_session session, ssh_channel channel, void *userdata) {
-    printf("in callback close===\n");
-}
-
-void my_channel_exit_status_function(ssh_session session, ssh_channel channel, int exit_status, void *userdata) {
-    printf("in callback exit===\n");
-}
-
-int my_channel_data_function(ssh_session session, ssh_channel channel, void *data, uint32_t len, int is_stderr, void *userdata) {
-    printf("in callback data = %s ==\n", (char *)data);
-    return 0;
-}
-
 void store_attributes_inHV(sftp_attributes attributes, HV *hv) {
     dTHX;
 
@@ -398,53 +385,6 @@ get_strerror()
         RETVAL = strerror(errno);
     OUTPUT: RETVAL
 
- 
-MODULE = Libssh::Session		PACKAGE = Libssh::Event
-
-# XS code
-
-PROTOTYPES: ENABLED
-    
-ssh_event
-ssh_event_new()
-    CODE:
-        RETVAL = ssh_event_new();
-    OUTPUT: RETVAL
-
-NO_OUTPUT void
-ssh_event_free(ssh_event event)
-    CODE:
-        ssh_event_free(event);
-
-int 
-ssh_event_add_session(ssh_event event, ssh_session session)
-    CODE:
-        RETVAL = ssh_event_add_session(event, session);
-    OUTPUT: RETVAL
-
-int
-ssh_event_remove_session(ssh_event event, ssh_session session)
-    CODE:
-        RETVAL = ssh_event_remove_session(event, session);
-    OUTPUT: RETVAL
-
-int
-ssh_event_dopoll(ssh_event event, int timeout)
-    CODE:
-        RETVAL = ssh_event_dopoll(event, timeout);
-    OUTPUT: RETVAL
-
-int
-ssh_channel_exit_status_callback(ssh_channel channel, char *userdata)
-    CODE:
-        struct ssh_channel_callbacks_struct cb = {
-            .userdata = NULL,
-            .channel_data_function = my_channel_data_function,
-            .channel_exit_status_function = my_channel_exit_status_function
-        };
-        ssh_callbacks_init(&cb);
-        RETVAL = ssh_set_channel_callbacks(channel, &cb);
-    OUTPUT: RETVAL
 
 MODULE = Libssh::Session		PACKAGE = Libssh::Sftp
 
