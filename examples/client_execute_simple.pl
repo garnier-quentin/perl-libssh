@@ -31,6 +31,8 @@ if ($session->auth_publickey_auto() != SSH_AUTH_SUCCESS) {
 print "== authentification succeeded\n";
 
 my $ret = $session->execute_simple(cmd => 'ls', timeout => 60, timeout_nodata => 30);
+# Example with input
+#my $ret = $session->execute_simple(cmd => 'cat -n > /tmp/test_input.txt', input_data => 'YES!!!', timeout => 60, timeout_nodata => 30);
 
 print "================================================\n";
 print "=== exit = " . $ret->{exit} . "\n";
