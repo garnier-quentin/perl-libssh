@@ -419,6 +419,20 @@ sub add_command_internal {
     
     $self->channel_request_exec(channel => ${$self->{channels}->{$channel_id}},
                                 cmd => $options{command}->{cmd});
+    if (defined($options{command}->{input_data})) {
+        if ($self->channel_write(channel => ${$self->{channels}->{$channel_id}}, data => $options{command}->{input_data}) == SSH_ERROR) {
+            $self->close_channel(channel_id => $channel_id);
+            if (defined($options{command}->{callback})) {
+                $options{command}->{callback}->(exit => SSH_ERROR, error_msg => 'cannot write in channel', session => $self);
+            } else {
+                push @{$self->{store_no_callback}}, { exit => SSH_ERROR, error_msg => 'cannot write in channel', session => $self };
+            }
+            return undef;
+        }
+        
+        # Force to finish it
+        $self->channel_send_eof(channel => ${$self->{channels}->{$channel_id}});
+    }
 }
 
 sub execute_read_channel {
