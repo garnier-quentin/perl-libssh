@@ -560,7 +560,7 @@ sub execute {
 sub execute_simple {
     my ($self, %options) = @_;
 
-    $self->{commands} = [ { cmd => $options{cmd} } ];
+    $self->{commands} = [ { cmd => $options{cmd}, input_data => $options{input_data} } ];
     $self->{store_no_callback} = [];
     $self->execute_internal(%options);
     $self->{commands} = [];
