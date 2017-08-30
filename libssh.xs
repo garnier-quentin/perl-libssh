@@ -304,6 +304,12 @@ ssh_channel_request_exec(ssh_channel channel, char *cmd)
         RETVAL = ssh_channel_request_exec(channel, cmd);
     OUTPUT: RETVAL
 
+int
+ssh_channel_write(ssh_channel channel, char *data)
+    CODE:
+        RETVAL = ssh_channel_write(channel, data, strlen(data));
+    OUTPUT: RETVAL
+
 HV *
 ssh_channel_select_read(AV *list, int timeout)
     CODE:

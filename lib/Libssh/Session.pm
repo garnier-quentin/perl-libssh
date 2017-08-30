@@ -616,6 +616,12 @@ sub channel_open_session {
     return ssh_channel_open_session($options{channel});
 }
 
+sub channel_write {
+    my ($self, %options) = @_;
+    
+    return ssh_channel_write($options{channel}, $options{data});
+}
+
 sub channel_request_exec {
     my ($self, %options) = @_;
     
