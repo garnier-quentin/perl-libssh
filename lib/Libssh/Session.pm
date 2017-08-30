@@ -330,6 +330,18 @@ sub is_authenticated {
     return $self->{authenticated};
 }
 
+sub auth_gssapi {
+    my ($self, %options) = @_;
+
+    my $ret = ssh_userauth_gssapi($self->{ssh_session});
+    if ($ret == SSH_AUTH_ERROR) {
+        $self->set_err(msg => sprintf("authentification failed: %s", ssh_get_error_from_session($self->{ssh_session})));
+    }
+    $self->{authenticated} = 1 if ($ret == SSH_OK);
+
+    return $ret;
+}
+
 sub auth_password {
     my ($self, %options) = @_;
 

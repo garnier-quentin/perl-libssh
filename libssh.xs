@@ -153,6 +153,12 @@ ssh_userauth_none(ssh_session session)
         RETVAL = ssh_userauth_none(session, NULL);
     OUTPUT: RETVAL
 
+int
+ssh_userauth_gssapi(ssh_session session)
+    CODE:
+        RETVAL = ssh_userauth_gssapi(session);
+    OUTPUT: RETVAL
+
 char *
 ssh_get_issue_banner(ssh_session session)
     CODE:
