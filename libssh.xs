@@ -428,14 +428,43 @@ sftp_free(sftp_session sftp)
         sftp_free(sftp);
 
 HV *
-test_attribute(sftp_session sftp, char *file)
+sftp_lstat(sftp_session sftp, char *file)
     CODE:
-        HV *hv_ret = newHV();
+        HV *hv_ret = NULL;
         sftp_attributes attributes;
         
         attributes = sftp_lstat(sftp, file);
         if (attributes != NULL) {
+            hv_ret = newHV();
             store_attributes_inHV(attributes, hv_ret);
+        } else {
+            XSRETURN_UNDEF;
+        }
+        RETVAL = hv_ret;
+    OUTPUT: RETVAL
+
+sftp_dir
+sftp_opendir(sftp_session sftp, char *dir)
+    CODE:
+        sftp_dir handle_dir = sftp_opendir(sftp, dir);
+        if (handle_dir == NULL) {
+            XSRETURN_UNDEF;
+        }
+        RETVAL = handle_dir;
+    OUTPUT: RETVAL
+
+HV *
+sftp_readdir(sftp_session sftp, sftp_dir dir)
+    CODE:
+        HV *hv_ret = NULL;
+        sftp_attributes attributes;
+        
+        attributes = sftp_readdir(sftp, dir);
+        if (attributes != NULL) {
+            hv_ret = newHV();
+            store_attributes_inHV(attributes, hv_ret);
+        } else {
+            XSRETURN_UNDEF;
         }
         RETVAL = hv_ret;
     OUTPUT: RETVAL

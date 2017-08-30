@@ -37,6 +37,6 @@ if (!defined($sftp)) {
     print Libssh::Sftp::error() . "\n";
     exit(1);
 }
-$sftp->list_dir();
+$sftp->list_dir(dir => '.');
 
 exit(0);

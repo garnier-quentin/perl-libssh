@@ -77,6 +77,7 @@ sub init {
         return SSH_ERROR;
     } 
     
+    $self->{ssh_session} = $options{session};
     $self->{sftp_session} = sftp_new($session);
     if (!defined($self->{sftp_session})) {
         $self->set_err(msg => 'error allocating SFTP session: ' . $options{session}->get_error());
@@ -103,6 +104,7 @@ sub new {
     $self->{raise_error} = 0;
     $self->{print_error} = 0;
     $self->{stp_session} = undef;
+    $self->{ssh_session} = undef;
     if (defined($options{session}) &&
         $self->init(session => $options{session}) != SSH_OK) {
         return undef;
@@ -154,6 +156,17 @@ sub options {
     return SSH_OK;
 }
 
+sub stat_file {
+    my ($self, %options) = @_;
+    
+    if (!defined($self->{sftp_session})) {
+        $self->set_err(msg => 'error: please attach the session');
+        return SSH_ERROR;
+    }
+    
+    return sftp_lstat($self->{sftp_session}, $options{file});
+}
+
 sub list_dir {
     my ($self, %options) = @_;
     
@@ -162,10 +175,30 @@ sub list_dir {
         return SSH_ERROR;
     }
     
-    use Data::Dumper;
-    print Data::Dumper::Dumper(test_attribute($self->{sftp_session}, '/root/test.pl'));
+    my $handle_dir = $self->opendir(dir => $options{dir});
+    if (!defined($handle_dir)) {
+        $self->set_err(msg => sprintf("Directory not opened: %s", $self->{ssh_session}->get_error()));
+        return SSH_ERROR;
+    }
+    
+    while ((my $attribute = $self->readdir(handle_dir => $handle_dir))) {
+        use Data::Dumper;
+        print Data::Dumper::Dumper($attribute);
+    }
     
     return SSH_OK;
+}
+
+sub opendir {
+    my ($self, %options) = @_;
+    
+    return sftp_opendir($self->{sftp_session}, $options{dir});
+}
+
+sub readdir {
+    my ($self, %options) = @_;
+    
+    return sftp_readdir($self->{sftp_session}, $options{handle_dir});
 }
 
 sub DESTROY {
