@@ -579,7 +579,6 @@ sub close_channel {
         return undef;
     }
     $self->channel_close(channel => ${$self->{channels}->{$options{channel_id}}});
-    $self->channel_send_eof(channel => ${$self->{channels}->{$options{channel_id}}});
     $self->channel_free(channel => ${$self->{channels}->{$options{channel_id}}});
     
     delete $self->{channels}->{$options{channel_id}};
