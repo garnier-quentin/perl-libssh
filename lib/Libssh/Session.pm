@@ -90,6 +90,7 @@ sub new {
         return undef;
     }
     
+    $self->{commands} = [];
     $self->{authenticated} = 0;
     $self->{channels} = {};
     return $self;
@@ -388,6 +389,12 @@ sub get_issue_banner {
 
 sub add_command {
     my ($self, %options) = @_;
+
+    push @{$self->{commands}}, $options{command};
+}
+
+sub add_command_internal {
+    my ($self, %options) = @_;
     my $timeout = (defined($options{timeout}) && int($options{timeout}) > 0) ? 
         $options{timeout} : 300;
     my $timeout_nodata = (defined($options{timeout_nodata}) && int($options{timeout_nodata}) > 0) ? 
@@ -471,8 +478,8 @@ sub execute_internal {
     $self->{slots} = {};
     $self->{channels_array} = [];
     while (1) {
-        while (scalar(keys %{$self->{slots}}) < $parallel && scalar(@{$options{commands}}) > 0) {
-            $self->add_command(command => shift(@{$options{commands}}), %options);
+        while (scalar(keys %{$self->{slots}}) < $parallel && scalar(@{$self->{commands}}) > 0) {
+            $self->add_command_internal(command => shift(@{$self->{commands}}), %options);
         }
         
         last if (scalar(keys %{$self->{slots}}) == 0);
@@ -528,8 +535,10 @@ sub execute_internal {
 sub execute {
     my ($self, %options) = @_;
 
+    push @{$self->{commands}}, $options{commands};
     $self->{store_no_callback} = [];
     $self->execute_internal(%options);
+    $self->{commands} = [];
 
     return $self->{store_no_callback};
 }
@@ -537,9 +546,10 @@ sub execute {
 sub execute_simple {
     my ($self, %options) = @_;
 
-    my $commands = [ { cmd => $options{cmd} } ];
+    $self->{commands} = [ { cmd => $options{cmd} } ];
     $self->{store_no_callback} = [];
-    $self->execute_internal(%options, commands => $commands);
+    $self->execute_internal(%options);
+    $self->{commands} = [];
 
     return pop(@{$self->{store_no_callback}});
 }
