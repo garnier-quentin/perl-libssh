@@ -535,7 +535,7 @@ sub execute_internal {
 sub execute {
     my ($self, %options) = @_;
 
-    push @{$self->{commands}}, $options{commands};
+    push @{$self->{commands}}, @{$options{commands}} if (defined($options{commands}));
     $self->{store_no_callback} = [];
     $self->execute_internal(%options);
     $self->{commands} = [];
