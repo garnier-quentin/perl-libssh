@@ -7,7 +7,7 @@ use Exporter qw(import);
 use XSLoader;
 use Time::HiRes;
 
-our $VERSION = '0.2';
+our $VERSION = '0.3';
 
 XSLoader::load('Libssh::Session', $VERSION);
 

@@ -6,7 +6,7 @@ use warnings;
 use Exporter qw(import);
 use XSLoader;
 
-our $VERSION = '0.2';
+our $VERSION = '0.3';
 
 XSLoader::load('Libssh::Session', $VERSION);
 
@@ -169,24 +169,36 @@ sub stat_file {
 
 sub list_dir {
     my ($self, %options) = @_;
-    
+
+    my $result = { code => SSH_ERROR, files => [] };
     if (!defined($self->{sftp_session})) {
         $self->set_err(msg => 'error: please attach the session');
-        return SSH_ERROR;
+        return $result;
     }
     
     my $handle_dir = $self->opendir(dir => $options{dir});
     if (!defined($handle_dir)) {
-        $self->set_err(msg => sprintf("Directory not opened: %s", $self->{ssh_session}->get_error()));
-        return SSH_ERROR;
+        $self->set_err(msg => sprintf("Directory not opened: %s", $self->get_msg_error()));
+        return $result;
     }
     
     while ((my $attribute = $self->readdir(handle_dir => $handle_dir))) {
-        use Data::Dumper;
-        print Data::Dumper::Dumper($attribute);
+        push @{$result->{files}}, $attribute;
     }
     
-    return SSH_OK;
+    if ($self->dir_eof(handle_dir => $handle_dir) == 0) {
+        $self->set_err(msg => sprintf("Can't list directory: %s", $self->get_msg_error()));
+        $self->closedir(handle_dir => $handle_dir);
+        return $result;
+    }
+    
+    if ($self->closedir(handle_dir => $handle_dir) != SSH_OK) {
+        $self->set_err(msg => sprintf("Can't close directory: %s", $self->get_msg_error()));
+        return $result;
+    }
+    
+    $result->{code} = SSH_OK;
+    return $result;
 }
 
 sub opendir {
@@ -199,6 +211,129 @@ sub readdir {
     my ($self, %options) = @_;
     
     return sftp_readdir($self->{sftp_session}, $options{handle_dir});
+}
+
+sub dir_eof {
+    my ($self, %options) = @_;
+    
+    return sftp_dir_eof($options{handle_dir});
+}
+
+sub closedir {
+    my ($self, %options) = @_;
+    
+    return sftp_closedir($options{handle_dir});
+}
+
+sub server_version {
+    my ($self, %options) = @_;
+    
+    return sftp_server_version($self->{sftp_session});
+}
+
+sub open {
+    my ($self, %options) = @_;
+    
+    if (!defined($self->{sftp_session})) {
+        $self->set_err(msg => 'error allocating SFTP session: ' . $options{session}->get_error());
+        return undef;
+    }
+    if (!defined($options{file}) || $options{file} eq '') {
+        $self->set_err(msg => 'please specify file option');
+        return undef;
+    }
+    
+    my $accesstype = defined($options{accesstype}) ? $options{accesstype} : 0;
+    my $mode = defined($options{mode}) ? $options{mode} : 0;
+    my $file = sftp_open($self->{sftp_session}, $options{file}, $accesstype, $mode);
+    if (!defined($file)) {
+        $self->set_err(msg => sprintf("Can't open file: %s", $self->get_msg_error()));
+        return undef;
+    }
+    
+    return $file;
+}
+
+sub write {
+    my ($self, %options) = @_;
+    
+    my $data = defined($options{data}) ? $options{data} : '';
+    my $no_close = defined($options{no_close}) ? $options{no_close} : 0;
+    if (!defined($options{handle_file})) {
+        $self->set_err(msg => 'please specify handle file option');
+        return undef;
+    }
+    
+    my $nwritten = sftp_write($options{handle_file}, $data);
+    if ($nwritten < 0) {
+        $self->set_err(msg => sprintf("Can't write data to file: %s", $self->get_msg_error()));
+        $self->close(handle_file => $options{handle_file});
+        return SSH_ERROR;
+    }
+    
+    if ($no_close == 0 && $self->close(handle_file => $options{handle_file}) != SSH_OK) {
+        return SSH_ERROR;
+    }
+    
+    return SSH_OK;
+}
+
+sub close {
+    my ($self, %options) = @_;
+    
+    my $code = sftp_close($options{handle_file});
+    if ($code != SSH_OK) {
+         $self->set_err(msg => sprintf("Can't close file: %s", $self->get_msg_error()));
+    }
+    
+    return $code;
+}
+
+sub unlink {
+    my ($self, %options) = @_;
+    
+    if (!defined($self->{sftp_session})) {
+        $self->set_err(msg => 'error allocating SFTP session: ' . $options{session}->get_error());
+        return undef;
+    }
+    if (!defined($options{file}) || $options{file} eq '') {
+        $self->set_err(msg => 'please specify file option');
+        return undef;
+    }
+    
+    my $code = sftp_unlink($self->{sftp_session}, $options{file});
+    if ($code != SSH_OK) {
+         $self->set_err(msg => sprintf("Can't unlink file: %s", $self->get_msg_error()));
+    }
+    
+    return $code;
+}
+
+
+sub get_msg_error {
+    my ($self, %options) = @_;
+    
+    my $error_code = sftp_get_error($self->{sftp_session});
+    my $mapping = {
+        SSH_FX_OK                   , 'no error',
+        SSH_FX_EOF                  , 'end-of-file encountered',
+        SSH_FX_NO_SUCH_FILE         , 'file does not exist',
+        SSH_FX_PERMISSION_DENIED    , 'permission denied',
+        SSH_FX_FAILURE              , 'generic failure',
+        SSH_FX_BAD_MESSAGE          , 'garbage received from server',
+        SSH_FX_NO_CONNECTION        , 'no connection has been set up',
+        SSH_FX_CONNECTION_LOST      , 'there was a connection, but we lost it',
+        SSH_FX_OP_UNSUPPORTED       , 'operation not supported by libssh yet',
+        SSH_FX_INVALID_HANDLE       , 'invalid file handle',
+        SSH_FX_NO_SUCH_PATH         , 'no such file or directory path exists',
+        SSH_FX_FILE_ALREADY_EXISTS  , 'an attempt to create an already existing file or directory has been made',
+        SSH_FX_WRITE_PROTECT        , 'write-protected filesystem',
+        SSH_FX_NO_MEDIA             , 'no media was in remote drive',
+    };
+    if (defined($mapping->{$error_code})) {
+        return $mapping->{$error_code};
+    }
+    return 'unknown';
 }
 
 sub DESTROY {

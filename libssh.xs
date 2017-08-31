@@ -468,3 +468,44 @@ sftp_readdir(sftp_session sftp, sftp_dir dir)
         }
         RETVAL = hv_ret;
     OUTPUT: RETVAL
+
+int
+sftp_dir_eof(sftp_dir dir)
+    CODE:
+        RETVAL = sftp_dir_eof(dir);
+    OUTPUT: RETVAL
+
+int
+sftp_closedir(sftp_dir dir)
+    CODE:
+        RETVAL = sftp_closedir(dir);
+    OUTPUT: RETVAL
+
+sftp_file
+sftp_open(sftp_session sftp, char *file, int accesstype, mode_t mode)
+    CODE:
+        sftp_file fileret = sftp_open(sftp, file, accesstype, mode);
+        
+        if (fileret == NULL) {
+            XSRETURN_UNDEF;
+        }
+        RETVAL = fileret;
+    OUTPUT: RETVAL
+
+size_t
+sftp_write(sftp_file file, char *buf)
+    CODE:
+        RETVAL = sftp_write(file, (void *)buf, strlen(buf));
+    OUTPUT: RETVAL
+
+int
+sftp_close(sftp_file file)
+    CODE:
+        RETVAL = sftp_close(file);
+    OUTPUT: RETVAL
+
+int
+sftp_unlink(sftp_session sftp, char *file)
+    CODE:
+        RETVAL = sftp_unlink(sftp, file);
+    OUTPUT: RETVAL

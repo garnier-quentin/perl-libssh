@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use Libssh::Session qw(:all);
 use Libssh::Sftp qw(:all);
+use POSIX;
 use Data::Dumper;
 
 my $ssh_host = "127.0.0.1";
@@ -38,11 +39,22 @@ if (!defined($sftp)) {
     print Libssh::Sftp::error() . "\n";
     exit(1);
 }
-my $result = $sftp->list_dir(dir => '.');
-if ($result->{code} == SSH_ERROR) {
+
+my $file = $sftp->open(file => 'TEST', accesstype => O_WRONLY|O_CREAT|O_TRUNC, mode => 0600);
+if (!defined($file)) {
     print $sftp->error() . "\n";
-} else {
-    print Data::Dumper::Dumper($result);
+    exit(1);
 }
+
+# Close is down at the end
+if ($sftp->write(handle_file => $file, data => "content writing test\n") != SSH_OK) {
+    print $sftp->error() . "\n";
+    exit(1);
+}
+
+#if ($sftp->unlink(file => 'TEST') != SSH_OK) {
+#    print $sftp->error() . "\n";
+#    exit(1);
+#}
 
 exit(0);
