@@ -1,5 +1,8 @@
 Revision history for Perl extension Libssh.
 
+0.4 2018-01-04
+  - Fix issue with wrong option name for sshdir and knowhosts
+
 0.3 2017-08-31
   - add sftp function: unlink, open/write/close file, list_dir
   - add ssh function: ssh_userauth_gssapi
