@@ -159,13 +159,13 @@ sub option_stricthostkeycheck {
 sub option_sshdir {
     my ($self, %options) = @_;
     
-    return ssh_options_ssh_dir($self->{ssh_session}, $options{value});
+    return ssh_options_set_ssh_dir($self->{ssh_session}, $options{value});
 }
 
 sub option_knownhosts {
     my ($self, %options) = @_;
     
-    return ssh_options_knownhosts($self->{ssh_session}, $options{value});
+    return ssh_options_set_knownhosts($self->{ssh_session}, $options{value});
 }
 
 sub option_identity {
