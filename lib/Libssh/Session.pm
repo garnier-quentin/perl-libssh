@@ -16,6 +16,14 @@ use constant SSH_ERROR => -1;
 use constant SSH_AGAIN => -2;
 use constant SSH_EOF => -127;
 
+use constant SSH_KNOWN_HOSTS_NOT_FOUND => -2;
+use constant SSH_KNOWN_HOSTS_NOT_FOUND => -1;
+use constant SSH_KNOWN_HOSTS_UNKNOWN => 0;
+use constant SSH_KNOWN_HOSTS_OK => 1;
+use constant SSH_KNOWN_HOSTS_CHANGED => 2;
+use constant SSH_KNOWN_HOSTS_OTHER => 3;
+
+# Deprecated
 use constant SSH_SERVER_ERROR => -1;
 use constant SSH_SERVER_NOT_KNOWN => 0;
 use constant SSH_SERVER_KNOWN_OK => 1;
@@ -218,11 +226,19 @@ sub options {
     return SSH_OK;
 }
 
-sub get_server_publickey {
+# Deprecated
+sub get_publickey {
     my ($self, %options) = @_;
     
     $self->{pubkey} = undef;
     return ssh_get_publickey($self->{ssh_session});
+}
+
+sub get_server_publickey {
+    my ($self, %options) = @_;
+    
+    $self->{pubkey} = undef;
+    return ssh_get_server_publickey($self->{ssh_session});
 }
 
 sub get_publickey_hash {
@@ -243,22 +259,36 @@ sub get_hexa {
     return ssh_get_hexa($options{value});
 }
 
+# Deprecated. Use is_known_server
 sub is_server_known {
     my ($self, %options) = @_;
     
     return ssh_is_server_known($self->{ssh_session});
 }
 
+sub is_known_server {
+    my ($self, %options) = @_;
+    
+    return ssh_session_is_known_server($self->{ssh_session});
+}
+
+# Deprecated. Please use update_known_hosts
 sub write_knownhost {
     my ($self, %options) = @_;
     
     return ssh_write_knownhost($self->{ssh_session});
 }
 
+sub update_known_hosts {
+    my ($self, %options) = @_;
+    
+    return ssh_session_update_known_hosts($self->{ssh_session});
+}
+
 sub verify_knownhost {
     my ($self, %options) = @_;
     
-    my $ret = $self->is_server_known();
+    my $ret = $self->is_known_server();
     
     $self->{pubkey} = $self->get_server_publickey();
     if (!defined($self->{pubkey})) {
@@ -273,20 +303,20 @@ sub verify_knownhost {
         return SSH_ERROR;
     }
         
-    if ($ret == SSH_SERVER_KNOWN_OK) {
+    if ($ret == SSH_KNOWN_HOSTS_OK) {
         return SSH_OK;
-    } elsif ($ret == SSH_SERVER_ERROR) {
+    } elsif ($ret == SSH_KNOWN_HOSTS_ERROR) {
         $self->set_err(msg => sprintf("knownhost failed: %s", ssh_get_error_from_session($self->{ssh_session})));
-    } elsif ($ret == SSH_SERVER_FILE_NOT_FOUND || $ret == SSH_SERVER_NOT_KNOWN) {
-        if ($self->write_knownhost() == SSH_OK) {
+    } elsif ($ret == SSH_KNOWN_HOSTS_NOT_FOUND || $ret == SSH_KNOWN_HOSTS_UNKNOWN) {
+        if ($self->update_known_hosts() == SSH_OK) {
             return SSH_OK;
         }
         $self->set_err(msg => sprintf("knownhost write failed: %s", get_strerror()));
-    } elsif ($ret == SSH_SERVER_KNOWN_CHANGED) {
+    } elsif ($ret == SSH_KNOWN_HOSTS_CHANGED) {
         return SSH_OK if (defined($options{SkipKeyProblem}) && $options{SkipKeyProblem});
         $self->set_err(msg => sprintf("knownhost failed: Host key for server changed: it is now: %s", 
                                       $self->get_hexa(value => $pubkey_hash)));
-    } elsif ($ret == SSH_SERVER_FOUND_OTHER) {
+    } elsif ($ret == SSH_KNOWN_HOSTS_OTHER) {
         return SSH_OK if (defined($options{SkipKeyProblem}) && $options{SkipKeyProblem});
         $self->set_err(msg => sprintf("knownhost failed: The host key for this server was not found but an other type of key exists."));
     }

@@ -168,11 +168,32 @@ ssh_get_issue_banner(ssh_session session)
 #
 
 int
+ssh_session_is_known_server(ssh_session session)
+    CODE:
+        RETVAL = ssh_session_is_known_server(session);
+    OUTPUT: RETVAL
+
+# Deprecated
+int
 ssh_is_server_known(ssh_session session)
     CODE:
         RETVAL = ssh_is_server_known(session);
     OUTPUT: RETVAL
 
+ssh_key 
+ssh_get_server_publickey(ssh_session session)
+    CODE:
+        ssh_key key;
+        int success;
+        
+        RETVAL = NULL;
+        success = ssh_get_server_publickey(session, &key);
+        if (success == SSH_OK) {
+            RETVAL = key;
+        }
+    OUTPUT: RETVAL
+
+# Deprecated
 ssh_key 
 ssh_get_publickey(ssh_session session)
     CODE:
@@ -217,6 +238,13 @@ ssh_get_hexa(unsigned char *what)
         RETVAL = ret;
     OUTPUT: RETVAL
 
+int
+ssh_session_update_known_hosts(ssh_session session)
+    CODE:
+        RETVAL = ssh_session_update_known_hosts(session);
+    OUTPUT: RETVAL
+
+# Deprecated
 int
 ssh_write_knownhost(ssh_session session)
     CODE:

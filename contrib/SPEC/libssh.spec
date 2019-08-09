@@ -56,7 +56,7 @@ cd build
 %files
 %defattr(-, root, root, 0755)
 %doc AUTHORS ChangeLog COPYING README
-%{_libdir}/
+%{_libdir}/libssh.so.*
 
 %files devel
 %defattr(-, root, root, 0755)
