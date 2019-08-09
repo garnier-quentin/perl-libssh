@@ -16,7 +16,7 @@ use constant SSH_ERROR => -1;
 use constant SSH_AGAIN => -2;
 use constant SSH_EOF => -127;
 
-use constant SSH_KNOWN_HOSTS_NOT_FOUND => -2;
+use constant SSH_KNOWN_HOSTS_ERROR => -2;
 use constant SSH_KNOWN_HOSTS_NOT_FOUND => -1;
 use constant SSH_KNOWN_HOSTS_UNKNOWN => 0;
 use constant SSH_KNOWN_HOSTS_OK => 1;
