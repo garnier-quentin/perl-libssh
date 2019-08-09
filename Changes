@@ -1,5 +1,8 @@
 Revision history for Perl extension Libssh.
 
+0.5 2019-09-07
+  - Update version for libssh 0.9.0 (no confusing)
+
 0.4 2018-01-04
   - Fix issue with wrong option name for sshdir and knowhosts
 

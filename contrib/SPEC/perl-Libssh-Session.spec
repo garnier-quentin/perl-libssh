@@ -1,12 +1,12 @@
 %define cpan_name Libssh-Session
 
 Name:		perl-Libssh-Session
-Version:	0.4
+Version:	0.5
 Release:	1%{?dist}
 Summary:	perl interface to the libssh library 
 Group:		Development/Libraries
 License:	Apache
-URL:		https://metacpan.org/release/QGARNIER/Libssh-Session-0.4
+URL:		https://metacpan.org/release/QGARNIER/Libssh-Session-0.5
 Source0:	http://search.cpan.org/CPAN/authors/id/M/ML/MLEHMANN/%{cpan_name}-%{version}.tar.gz
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 

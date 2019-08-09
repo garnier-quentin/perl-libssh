@@ -1,6 +1,6 @@
 
 Name:		libssh
-Version:	0.7.5
+Version:	0.9.0
 Release:	1%{?dist}
 Summary:	Library implementing the SSH2 protocol
 
@@ -56,15 +56,13 @@ cd build
 %files
 %defattr(-, root, root, 0755)
 %doc AUTHORS ChangeLog COPYING README
-%{_libdir}/libssh.so.*
-%{_libdir}/libssh_threads.so.*
+%{_libdir}/
 
 %files devel
 %defattr(-, root, root, 0755)
 %{_includedir}/libssh/
 %{_libdir}/cmake
 %{_libdir}/libssh.so
-%{_libdir}/libssh_threads.so
 %{_libdir}/pkgconfig/
 #exclude %{_libdir}/libssh.la
 #exclude %{_libdir}/libssh_threads.la

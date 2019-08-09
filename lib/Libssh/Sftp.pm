@@ -6,7 +6,7 @@ use warnings;
 use Exporter qw(import);
 use XSLoader;
 
-our $VERSION = '0.4';
+our $VERSION = '0.5';
 
 XSLoader::load('Libssh::Session', $VERSION);
 
