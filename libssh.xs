@@ -509,6 +509,24 @@ sftp_closedir(sftp_dir dir)
         RETVAL = sftp_closedir(dir);
     OUTPUT: RETVAL
 
+int
+sftp_mkdir(sftp_session sftp, char *dir, mode_t mode)
+    CODE:
+        RETVAL = sftp_mkdir(sftp, dir, mode);
+    OUTPUT: RETVAL
+
+int
+sftp_rmdir(sftp_session sftp, char *dir)
+    CODE:
+        RETVAL = sftp_rmdir(sftp, dir);
+    OUTPUT: RETVAL
+
+int
+sftp_rename(sftp_session sftp, char *original, char *newname)
+    CODE:
+        RETVAL = sftp_rename(sftp, original, newname);
+    OUTPUT: RETVAL
+
 sftp_file
 sftp_open(sftp_session sftp, char *file, int accesstype, mode_t mode)
     CODE:
