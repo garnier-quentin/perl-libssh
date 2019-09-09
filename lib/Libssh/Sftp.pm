@@ -254,7 +254,7 @@ sub rename {
         return undef;
     }
 
-    my $code = sftp_rmdir($self->{sftp_session}, $options{original}, $options{newname});
+    my $code = sftp_rename($self->{sftp_session}, $options{original}, $options{newname});
     if ($code != SSH_OK) {
         $self->set_err(msg => sprintf("Can't rename '%s' -> '%s': %s", $options{original}, $options{newname}, $self->get_msg_error()));
     }
