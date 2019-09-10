@@ -374,26 +374,36 @@ sub copy_file {
         $self->set_err(msg => sprintf("Can't open file '%s': %s", $options{src}, $!));
         return -1;
     }
-    $dst = $self->open(file => $options{dst}, accesstype => O_WRONLY|O_CREAT|O_TRUNC, mode => defined($options{mode}) ? $options{mode} : undef);
+    $dst = $self->open(file => $options{dst}, accesstype => O_WRONLY|O_CREAT|O_TRUNC, mode => defined($options{mode}) ? $options{mode} : 0644);
     if (!defined($dst)) {
         CORE::close($fh);
         return -1;
     }
 
+    my $timeout = defined($options{timeout}) ? $options{timeout} : 60;
     my $chunk = defined($options{chunk}) ? $options{chunk} : 50000;
-    while (sysread($fh, $buffer, $chunk)) {
-        my $written = 0;
-        while ($written < $chunk) {
-            my $nwritten = sftp_write($dst, $buffer);
-            if ($nwritten < 0) {
-                $self->set_err(msg => sprintf("Can't write data to file: %s", $self->get_msg_error()));
+    while (my $nread = sysread($fh, $buffer, $chunk)) {
+        my $nwritten = 0;
+        while ($nwritten < $nread) {
+            my $written;
+            
+            eval {
+                local $SIG{ALRM} = sub { die 'Timeout by signal ALARM'; };
+                alarm($timeout);
+                $written = sftp_write_len($dst, $buffer, $nread);
+                alarm(0);
+            };
+            if ($@ || $written < 0) {
+                $self->set_err(
+                    msg => sprintf("Can't write data to file: %s", defined($written) && $written < 0 ? $self->get_msg_error() : $@)
+                );
                 $self->close(handle_file => $dst);
                 CORE::close($fh);
                 return -1;
             }
             
             $buffer = bytes::substr($buffer, $nwritten);
-            $written += $nwritten;
+            $nwritten += $written;
         }
     }
 

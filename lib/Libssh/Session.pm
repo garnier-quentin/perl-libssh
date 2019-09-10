@@ -349,7 +349,7 @@ sub disconnect {
     foreach my $channel_id (keys %{$self->{channels}}) {
         $self->close_channel(channel_id => $channel_id);
     }
-    if (ssh_is_connected($self->{ssh_session}) == 1) {
+    if ($self->is_connected() == 1) {
         ssh_disconnect($self->{ssh_session});
     }
     $self->{authenticated} = 0;
@@ -713,6 +713,12 @@ sub channel_is_closed {
     my ($self, %options) = @_;
     
     return ssh_channel_is_closed($options{channel});
+}
+
+sub is_connected {
+    my ($self, %options) = @_;
+    
+    return ssh_is_connected($self->{ssh_session});
 }
 
 sub DESTROY {
