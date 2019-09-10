@@ -544,6 +544,12 @@ sftp_write(sftp_file file, char *buf)
         RETVAL = sftp_write(file, (void *)buf, strlen(buf));
     OUTPUT: RETVAL
 
+size_t
+sftp_write_len(sftp_file file, char *buf, int length)
+    CODE:
+        RETVAL = sftp_write(file, (void *)buf, length);
+    OUTPUT: RETVAL
+
 int
 sftp_close(sftp_file file)
     CODE:

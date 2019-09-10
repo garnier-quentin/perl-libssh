@@ -3,6 +3,7 @@ package Libssh::Sftp;
 
 use strict;
 use warnings;
+use POSIX;
 use Libssh::Session;
 use Exporter qw(import);
 
@@ -288,7 +289,7 @@ sub server_version {
 
 sub open {
     my ($self, %options) = @_;
-    
+
     if (!defined($self->{sftp_session})) {
         $self->set_err(msg => 'error allocating SFTP session: ' . $options{session}->get_error());
         return undef;
@@ -297,7 +298,7 @@ sub open {
         $self->set_err(msg => 'please specify file option');
         return undef;
     }
-    
+
     my $accesstype = defined($options{accesstype}) ? $options{accesstype} : 0;
     my $mode = defined($options{mode}) ? $options{mode} : 0;
     my $file = sftp_open($self->{sftp_session}, $options{file}, $accesstype, $mode);
@@ -305,7 +306,7 @@ sub open {
         $self->set_err(msg => sprintf("Can't open file: %s", $self->get_msg_error()));
         return undef;
     }
-    
+
     return $file;
 }
 
@@ -362,6 +363,43 @@ sub unlink {
     }
     
     return $code;
+}
+
+sub copy_file {
+    my ($self, %options) = @_;
+    my ($fh, $dst, $buffer);
+    require bytes;
+
+    if (!CORE::open($fh, '<', $options{src})) {
+        $self->set_err(msg => sprintf("Can't open file '%s': %s", $options{src}, $!));
+        return -1;
+    }
+    $dst = $self->open(file => $options{dst}, accesstype => O_WRONLY|O_CREAT|O_TRUNC, mode => defined($options{mode}) ? $options{mode} : undef);
+    if (!defined($dst)) {
+        CORE::close($fh);
+        return -1;
+    }
+
+    my $chunk = defined($options{chunk}) ? $options{chunk} : 50000;
+    while (sysread($fh, $buffer, $chunk)) {
+        my $written = 0;
+        while ($written < $chunk) {
+            my $nwritten = sftp_write($dst, $buffer);
+            if ($nwritten < 0) {
+                $self->set_err(msg => sprintf("Can't write data to file: %s", $self->get_msg_error()));
+                $self->close(handle_file => $dst);
+                CORE::close($fh);
+                return -1;
+            }
+            
+            $buffer = bytes::substr($buffer, $nwritten);
+            $written += $nwritten;
+        }
+    }
+
+    $self->close(handle_file => $dst);
+    CORE::close($fh);
+    return 0;
 }
 
 sub get_msg_error {
