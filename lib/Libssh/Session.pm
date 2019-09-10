@@ -207,8 +207,9 @@ sub options {
     my ($self, %options) = @_;
 
     foreach my $key (keys %options) {
-        my $ret;
+        next if (!defined($options{$key}));
 
+        my $ret;
         my $func = $self->can("option_" . lc($key));
         if (defined($func)) {
             $ret = $func->($self, value => $options{$key});
