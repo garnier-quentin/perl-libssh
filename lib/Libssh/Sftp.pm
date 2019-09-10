@@ -69,7 +69,7 @@ sub init {
     my ($self, %options) = @_;
     
     if (!defined($options{session}) || 
-        ref($options{session}) ne 'Libssh::Session') {
+        !$options{session}->isa('Libssh::Session')) {
         $self->set_err(msg => 'error allocating SFTP session: need to set session option');
         return SSH_ERROR;
     }
