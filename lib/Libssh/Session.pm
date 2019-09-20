@@ -842,7 +842,7 @@ SSH_AUTH_METHOD_HOSTBASED
 SSH_AUTH_METHOD_INTERACTIVE
 SSH_AUTH_METHOD_GSSAPI_MIC
 
-The function auth_none() must be called to try and get the available methods.
+The function auth_none() must be called first before the methods are available.
 
 =item auth_password ([ OPTIONS ])
 
