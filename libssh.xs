@@ -132,6 +132,12 @@ ssh_options_set_log_verbosity(ssh_session session, int verbosity)
 #
 
 int
+ssh_userauth_list(ssh_session session)
+    CODE:
+        RETVAL = ssh_userauth_list(session, NULL);
+    OUTPUT: RETVAL
+
+int
 ssh_userauth_password(ssh_session session, char *password)
     CODE:
         RETVAL = ssh_userauth_password(session, NULL, password);
