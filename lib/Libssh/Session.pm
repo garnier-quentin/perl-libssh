@@ -23,6 +23,14 @@ use constant SSH_KNOWN_HOSTS_OK => 1;
 use constant SSH_KNOWN_HOSTS_CHANGED => 2;
 use constant SSH_KNOWN_HOSTS_OTHER => 3;
 
+use constant SSH_AUTH_METHOD_UNKNOWN => 0;
+use constant SSH_AUTH_METHOD_NONE => 1;
+use constant SSH_AUTH_METHOD_PASSWORD => 2;
+use constant SSH_AUTH_METHOD_PUBLICKEY => 4;
+use constant SSH_AUTH_METHOD_HOSTBASED => 8;
+use constant SSH_AUTH_METHOD_INTERACTIVE => 16;
+use constant SSH_AUTH_METHOD_GSSAPI_MIC => 32;
+
 # Deprecated
 use constant SSH_SERVER_ERROR => -1;
 use constant SSH_SERVER_NOT_KNOWN => 0;
@@ -58,6 +66,8 @@ SSH_OK SSH_ERROR SSH_AGAIN SSH_EOF
 SSH_LOG_NOLOG SSH_LOG_WARNING SSH_LOG_PROTOCOL SSH_LOG_PACKET SSH_LOG_FUNCTIONS
 SSH_AUTH_ERROR SSH_AUTH_SUCCESS SSH_AUTH_DENIED SSH_AUTH_PARTIAL SSH_AUTH_INFO SSH_AUTH_AGAIN
 SSH_NO_ERROR SSH_REQUEST_DENIED SSH_FATAL SSH_EINTR
+SSH_AUTH_METHOD_UNKNOWN SSH_AUTH_METHOD_NONE SSH_AUTH_METHOD_PASSWORD SSH_AUTH_METHOD_PUBLICKEY
+SSH_AUTH_METHOD_HOSTBASED SSH_AUTH_METHOD_INTERACTIVE SSH_AUTH_METHOD_GSSAPI_MIC
 );
 our @EXPORT = qw();
 our %EXPORT_TAGS = ( 'all' => [ @EXPORT, @EXPORT_OK ] );
@@ -371,6 +381,12 @@ sub auth_gssapi {
     $self->{authenticated} = 1 if ($ret == SSH_OK);
 
     return $ret;
+}
+
+sub auth_list {
+    my ($self, %options) = @_;
+
+    return ssh_userauth_list($self->{ssh_session});
 }
 
 sub auth_password {
@@ -815,6 +831,18 @@ C<OPTIONS> are passed in a hash like fashion, using key and value pairs. Possibl
 
 B<passphrase> - passphrase for the private key (if it's needed. Otherwise don't set the option).
 
+=item auth_list ([ OPTIONS ])
+
+Tries to retrieve a list of accepted authentication methods. Returns a bitfield of the following values:
+SSH_AUTH_METHOD_UNKNOWN
+SSH_AUTH_METHOD_NONE
+SSH_AUTH_METHOD_PASSWORD
+SSH_AUTH_METHOD_PUBLICKEY
+SSH_AUTH_METHOD_HOSTBASED
+SSH_AUTH_METHOD_INTERACTIVE
+SSH_AUTH_METHOD_GSSAPI_MIC
+
+The function auth_none() must be called first before the methods are available.
 
 =item auth_password ([ OPTIONS ])
 
