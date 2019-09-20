@@ -842,6 +842,8 @@ SSH_AUTH_METHOD_HOSTBASED
 SSH_AUTH_METHOD_INTERACTIVE
 SSH_AUTH_METHOD_GSSAPI_MIC
 
+The function auth_none() must be called to try and get the available methods.
+
 =item auth_password ([ OPTIONS ])
 
 Try to authenticate by password. returns SSH_AUTH_SUCCESS if it succeeds.
