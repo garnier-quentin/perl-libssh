@@ -159,6 +159,47 @@ ssh_userauth_none(ssh_session session)
         RETVAL = ssh_userauth_none(session, NULL);
     OUTPUT: RETVAL
 
+## Keyboard-interactive auth
+
+int
+ssh_userauth_kbdint(ssh_session session)
+    CODE:
+        RETVAL = ssh_userauth_kbdint(session, NULL, NULL);
+    OUTPUT: RETVAL
+
+int
+ssh_userauth_kbdint_getnprompts(ssh_session session)
+    CODE:
+        RETVAL = ssh_userauth_kbdint_getnprompts(session);
+    OUTPUT: RETVAL
+
+const char *
+ssh_userauth_kbdint_getname(ssh_session session)
+    CODE:
+        RETVAL = ssh_userauth_kbdint_getname(session);
+    OUTPUT: RETVAL
+
+const char *
+ssh_userauth_kbdint_getinstruction(ssh_session session)
+    CODE:
+        RETVAL = ssh_userauth_kbdint_getinstruction(session);
+    OUTPUT: RETVAL
+
+const char *
+ssh_userauth_kbdint_getprompt(ssh_session session, unsigned int i)
+    CODE:
+        RETVAL = ssh_userauth_kbdint_getprompt(session, i, NULL);
+    OUTPUT:
+        RETVAL
+
+int
+ssh_userauth_kbdint_setanswer(ssh_session session, unsigned int i, const char *answer)
+    CODE:
+        RETVAL = ssh_userauth_kbdint_setanswer(session, i, answer);
+    OUTPUT: RETVAL
+
+##
+
 int
 ssh_userauth_gssapi(ssh_session session)
     CODE:

@@ -430,6 +430,73 @@ sub auth_none {
     return $ret;
 }
 
+sub auth_kbdint {
+    my ($self, %options) = @_;
+
+    my $ret = ssh_userauth_kbdint($self->{ssh_session});
+    if ($ret == SSH_AUTH_ERROR) {
+        $self->set_err(msg => sprintf("authentification failed: %s", ssh_get_error_from_session($self->{ssh_session})));
+    }
+    $self->{authenticated} = 1 if ($ret == SSH_OK);
+
+    return $ret;
+}
+
+sub auth_kbdint_getnprmopts {
+    my ($self, %options) = @_;
+
+    my $ret = ssh_userauth_kbdint_getnprompts($self->{ssh_session});
+    if ($ret == SSH_AUTH_ERROR) {
+        $self->set_err(msg => sprintf("failed to get number of keyboard interactive prompts: %s", ssh_get_error_from_session($self->{ssh_session})));
+    }
+
+    return $ret;
+}
+
+sub auth_kbdint_getname {
+    my ($self, %options) = @_;
+
+    my $ret = ssh_userauth_kbdint_getname($self->{ssh_session});
+    if (!defined $ret) {
+        $self->set_err(msg => sprintf("failed to get the name of the keyboard interactive message block: %s", ssh_get_error_from_session($self->{ssh_session})));
+    }
+
+    return $ret;
+}
+
+sub auth_kbdint_getinstruction {
+    my ($self, %options) = @_;
+
+    my $ret = ssh_userauth_kbdint_getinstruction($self->{ssh_session});
+    if (!defined $ret) {
+        $self->set_err(msg => sprintf("failed to get the instruction of the keyboard interactive message block: %s", ssh_get_error_from_session($self->{ssh_session})));
+    }
+
+    return $ret;
+}
+
+sub auth_kbdint_getprompt {
+    my ($self, %options) = @_;
+
+    my $ret = ssh_userauth_kbdint_getprompt($self->{ssh_session}, $options{index});
+    if (!defined $ret) {
+        $self->set_err(msg => sprintf("failed to get a prompt from a keyboard interactive message block: %s", ssh_get_error_from_session($self->{ssh_session})));
+    }
+
+    return $ret;
+}
+
+sub auth_kbdint_setanswer {
+    my ($self, %options) = @_;
+
+    my $ret = ssh_userauth_kbdint_setanswer($self->{ssh_session}, $options{index}, $options{answer});
+    if ($ret) {
+        $self->set_err(msg => sprintf("failed to set an answer for a question from a keyboard interactive message block: %s", ssh_get_error_from_session($self->{ssh_session})));
+    }
+
+    return $ret;
+}
+
 sub get_fd {
     my ($self, %options) = @_;
     
