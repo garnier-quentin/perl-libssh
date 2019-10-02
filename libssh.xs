@@ -189,8 +189,7 @@ const char *
 ssh_userauth_kbdint_getprompt(ssh_session session, unsigned int i)
     CODE:
         RETVAL = ssh_userauth_kbdint_getprompt(session, i, NULL);
-    OUTPUT:
-        RETVAL
+    OUTPUT: RETVAL
 
 int
 ssh_userauth_kbdint_setanswer(ssh_session session, unsigned int i, const char *answer)

@@ -46,7 +46,7 @@ while ($ret == SSH_AUTH_INFO) {
 			$answer .= "\0";
 		}
 		if ($session->auth_kbdint_setanswer(index => $i, answer => $answer) < 0) {
-			print "== attempt to set answer to challenge failed\n";
+			printf("setting answer issue: %s\n", $session->error());
 			exit(1);
 		}
 	}

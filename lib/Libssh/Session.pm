@@ -490,7 +490,7 @@ sub auth_kbdint_setanswer {
     my ($self, %options) = @_;
 
     my $ret = ssh_userauth_kbdint_setanswer($self->{ssh_session}, $options{index}, $options{answer});
-    if ($ret) {
+    if ($ret < 0) {
         $self->set_err(msg => sprintf("failed to set an answer for a question from a keyboard interactive message block: %s", ssh_get_error_from_session($self->{ssh_session})));
     }
 
