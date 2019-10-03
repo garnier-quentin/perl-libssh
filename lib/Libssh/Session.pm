@@ -910,6 +910,51 @@ C<OPTIONS> are passed in a hash like fashion, using key and value pairs. Possibl
 B<password> - passphrase for the private key (if it's needed. Otherwise don't set the option).
 
 
+=item auth_kbdint ([ OPTIONS ])
+
+Try to authenticate through the "keyboard-interactive" method. Returns one of the following:
+SSH_AUTH_ERROR:   A serious error happened\n
+SSH_AUTH_DENIED:  Authentication failed : use another method\n
+SSH_AUTH_PARTIAL: You've been partially authenticated, you still
+                  have to use another method\n
+SSH_AUTH_SUCCESS: Authentication success\n
+SSH_AUTH_INFO:    The server asked some questions. Use
+                  auth_kbdint_getnprmopts() and such to retrieve
+                  and answer them.\n
+SSH_AUTH_AGAIN:   In nonblocking mode, you've got to call this again
+                  later.
+
+=item auth_kbdint_getname ([ OPTIONS ])
+
+Get the "name" of the message block. Returns undef if there isn't one or it couldn't be retrieved.
+
+=item auth_kbdint_getinstruction ([ OPTIONS ])
+
+Get the "instruction" of the message block. Returns undef if there isn't one or it couldn't be retrieved.
+
+=item auth_kbdint_getnprmopts ([ OPTIONS ])
+
+Get the number of authentication questions given by the server. This function can be used once you've called auth_kbdint() and the server responded with SSH_AUTH_INFO.
+
+=item auth_kbdint_getprompt ([ OPTIONS ])
+
+Get a prompt from a message block. This function can be used once you've called auth_kbdint() and the server responded with SSH_AUTH_INFO to retrieve one of the authentication questions. The total number of quesitons can be retrieved with auth_kbdint_getnprmopts().
+
+C<OPTIONS> are passed in a hash like fashion, using key and value pairs. Possible options are:
+
+B<index> - The number of the prompt you want to retrieve.
+
+=item auth_kbdint_setanswer ([ OPTIONS ])
+
+Set the answer to a prompt from a message block.
+
+C<OPTIONS> are passed in a hash like fashion, using key and value pairs. Possible options are:
+
+B<index> - The number of the prompt you want to give an answer to.
+
+B<answer> - The answer to the question. If reading ipnut from <STDIN> make sure to chomp() and append a "\0" character, otherwise it doesn't seem to work.
+
+
 =item auth_none ([ OPTIONS ])
 
 Try to authenticate through the "none" method. returns SSH_AUTH_SUCCESS if it succeeds.
