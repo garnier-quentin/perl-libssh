@@ -86,6 +86,18 @@ sub set_err {
     }
 }
 
+sub set_blocking {
+    my ($self, %options) = @_;
+
+    ssh_set_blocking($self->{ssh_session}, $options{blocking});
+}
+
+sub is_blocking {
+    my ($self, %options) = @_;
+
+    ssh_is_blocking($self->{ssh_session});
+}
+
 sub error {
     my ($self, %options) = @_;
     
@@ -551,6 +563,12 @@ sub add_command_internal {
     }
 }
 
+sub channel_get_exit_status {
+    my ($self, %options) = @_;
+
+    return ssh_channel_get_exit_status($options{channel});
+}
+
 sub execute_read_channel {
     my ($self, %options) = @_;
     
@@ -578,7 +596,7 @@ sub execute_read_channel {
     }
     
     if (ssh_channel_is_eof($channel) != 0) {
-        $self->{slots}->{$channel_id}->{exit_code} = ssh_channel_get_exit_status($channel);
+        $self->{slots}->{$channel_id}->{exit_code} = $self->channel_get_exit_status(channel => $channel);
         $self->close_channel(channel_id => $channel_id);
         
         my %callback_options = (
@@ -709,7 +727,7 @@ sub get_channel {
         return undef;
     }
     
-    return $self->{channels}->{$options{channel_id}};
+    return ${$self->{channels}->{$options{channel_id}}};
 }
 
 sub close_channel {

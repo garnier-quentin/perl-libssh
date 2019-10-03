@@ -68,7 +68,18 @@ ssh_get_fd(ssh_session session)
     CODE:
         RETVAL = ssh_get_fd(session);
     OUTPUT: RETVAL
-    
+
+NO_OUTPUT void
+ssh_set_blocking(ssh_session session, int blocking)
+    CODE:
+        ssh_set_blocking(session, blocking);
+
+int
+ssh_is_blocking(ssh_session session)
+    CODE:
+        RETVAL = ssh_is_blocking(session);
+    OUTPUT: RETVAL
+
 #
 # ssh_options_set functions
 #
@@ -360,6 +371,11 @@ ssh_channel_new(ssh_session session)
     CODE:
         RETVAL = ssh_channel_new(session);
     OUTPUT: RETVAL
+
+NO_OUTPUT void
+ssh_channel_set_blocking(ssh_channel channel, int blocking)
+    CODE:
+        ssh_channel_set_blocking(channel, blocking);
 
 int
 ssh_channel_open_session(ssh_channel channel)
