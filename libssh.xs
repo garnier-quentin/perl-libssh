@@ -159,6 +159,73 @@ ssh_userauth_none(ssh_session session)
         RETVAL = ssh_userauth_none(session, NULL);
     OUTPUT: RETVAL
 
+## Keyboard-interactive auth
+
+int
+ssh_userauth_kbdint(ssh_session session)
+    CODE:
+        RETVAL = ssh_userauth_kbdint(session, NULL, NULL);
+    OUTPUT: RETVAL
+
+int
+ssh_userauth_kbdint_getnprompts(ssh_session session)
+    CODE:
+        RETVAL = ssh_userauth_kbdint_getnprompts(session);
+    OUTPUT: RETVAL
+
+SV *
+ssh_userauth_kbdint_getname(ssh_session session)
+    CODE:
+        SV *ret;
+        const char *name;
+
+        name = ssh_userauth_kbdint_getname(session);
+        ret = &PL_sv_undef;
+        if (name != NULL && strlen(name) > 0) {
+            ret = newSVpv((char *)name, strlen((char *)name));
+        }
+        RETVAL = ret;
+    OUTPUT: RETVAL
+
+SV *
+ssh_userauth_kbdint_getinstruction(ssh_session session)
+    CODE:
+        SV *ret;
+        const char *instruction;
+
+        instruction = ssh_userauth_kbdint_getinstruction(session);
+        ret = &PL_sv_undef;
+        if (instruction != NULL && strlen(instruction) > 0) {
+            ret = newSVpv((char *)instruction, strlen((char *)instruction));
+        }
+        RETVAL = ret;
+    OUTPUT: RETVAL
+
+HV *
+ssh_userauth_kbdint_getprompt(ssh_session session, unsigned int i)
+    CODE:
+        HV *hv_ret = newHV();
+        const char *prompt;
+        char echo;
+
+        prompt = ssh_userauth_kbdint_getprompt(session, i, &echo);
+        (void)hv_store(hv_ret, "text", 4, newSVpv(prompt, strlen(prompt)), 0);
+        if (echo) {
+            (void)hv_store(hv_ret, "echo", 4, newSViv(1), 0);
+        } else {
+            (void)hv_store(hv_ret, "echo", 4, newSViv(0), 0);
+        }
+        RETVAL = hv_ret;
+    OUTPUT: RETVAL
+
+int
+ssh_userauth_kbdint_setanswer(ssh_session session, unsigned int i, const char *answer)
+    CODE:
+        RETVAL = ssh_userauth_kbdint_setanswer(session, i, answer);
+    OUTPUT: RETVAL
+
+##
+
 int
 ssh_userauth_gssapi(ssh_session session)
     CODE:
