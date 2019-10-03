@@ -940,15 +940,15 @@ Get the number of authentication questions given by the server. This function ca
 
 Get a prompt from a message block. This function can be used once you've called auth_kbdint() and the server responded with SSH_AUTH_INFO to retrieve one of the authentication questions. The total number of quesitons can be retrieved with auth_kbdint_getnprmopts(). Returns a reference to a hash table.
 
+C<OPTIONS> are passed in a hash like fashion, using key and value pairs. Possible options are:
+
+B<index> - The number of the prompt you want to retrieve.
+
 The hash table returned has the following attributes:
 
 B<text> - The prompt text.
 
 B<echo> - '0' or '1' bool value whether or not the user's input should be echoed back.
-
-C<OPTIONS> are passed in a hash like fashion, using key and value pairs. Possible options are:
-
-B<index> - The number of the prompt you want to retrieve.
 
 =item auth_kbdint_setanswer ([ OPTIONS ])
 
