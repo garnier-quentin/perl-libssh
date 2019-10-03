@@ -6,8 +6,8 @@ use Libssh::Session qw(:all);
 
 my $ssh_host = "127.0.0.1";
 my $ssh_port = 22;
-my $ssh_user = "sshtest";
-my $ssh_pass = "libsshtest";
+my $ssh_user = "root";
+my $ssh_pass = "centreon";
 
 my $session = Libssh::Session->new();
 if ($session->options(host => $ssh_host, port => $ssh_port, user => $ssh_user) != SSH_OK) {
