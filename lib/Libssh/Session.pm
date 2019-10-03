@@ -456,23 +456,13 @@ sub auth_kbdint_getnprmopts {
 sub auth_kbdint_getname {
     my ($self, %options) = @_;
 
-    my $ret = ssh_userauth_kbdint_getname($self->{ssh_session});
-    if (!defined $ret) {
-        $self->set_err(msg => sprintf("failed to get the name of the keyboard interactive message block: %s", ssh_get_error_from_session($self->{ssh_session})));
-    }
-
-    return $ret;
+    return ssh_userauth_kbdint_getname($self->{ssh_session});
 }
 
 sub auth_kbdint_getinstruction {
     my ($self, %options) = @_;
 
-    my $ret = ssh_userauth_kbdint_getinstruction($self->{ssh_session});
-    if (!defined $ret) {
-        $self->set_err(msg => sprintf("failed to get the instruction of the keyboard interactive message block: %s", ssh_get_error_from_session($self->{ssh_session})));
-    }
-
-    return $ret;
+    return ssh_userauth_kbdint_getinstruction($self->{ssh_session});
 }
 
 sub auth_kbdint_getprompt {

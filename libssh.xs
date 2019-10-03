@@ -173,16 +173,32 @@ ssh_userauth_kbdint_getnprompts(ssh_session session)
         RETVAL = ssh_userauth_kbdint_getnprompts(session);
     OUTPUT: RETVAL
 
-const char *
+SV *
 ssh_userauth_kbdint_getname(ssh_session session)
     CODE:
-        RETVAL = ssh_userauth_kbdint_getname(session);
+        SV *ret;
+        const char *name;
+
+        name = ssh_userauth_kbdint_getname(session);
+        ret = &PL_sv_undef;
+        if (name != NULL && strlen(name) > 0) {
+            ret = newSVpv((char *)name, strlen((char *)name));
+        }
+        RETVAL = ret;
     OUTPUT: RETVAL
 
-const char *
+SV *
 ssh_userauth_kbdint_getinstruction(ssh_session session)
     CODE:
-        RETVAL = ssh_userauth_kbdint_getinstruction(session);
+        SV *ret;
+        const char *instruction;
+
+        instruction = ssh_userauth_kbdint_getinstruction(session);
+        ret = &PL_sv_undef;
+        if (instruction != NULL && strlen(instruction) > 0) {
+            ret = newSVpv((char *)instruction, strlen((char *)instruction));
+        }
+        RETVAL = ret;
     OUTPUT: RETVAL
 
 HV *

@@ -6,8 +6,8 @@ use Libssh::Session qw(:all);
 
 my $ssh_host = "127.0.0.1";
 my $ssh_port = 22;
-my $ssh_user = "root";
-my $ssh_pass = "centreon";
+my $ssh_user = "sshtest";
+my $ssh_pass = "libsshtest";
 
 my $session = Libssh::Session->new();
 if ($session->options(host => $ssh_host, port => $ssh_port, user => $ssh_user) != SSH_OK) {
@@ -32,8 +32,8 @@ while ($ret == SSH_AUTH_INFO) {
 	my $instruction = $session->auth_kbdint_getinstruction();
 	my $nprompts    = $session->auth_kbdint_getnprmopts();
 
-	print "$name\n" if ($name);
-	print "$instruction\n" if ($instruction);
+	print "$name\n"        if (defined $name);
+	print "$instruction\n" if (defined $instruction);
 
 	for (my $i = 0; $i < $nprompts; $i++) {
 		my $answer;
