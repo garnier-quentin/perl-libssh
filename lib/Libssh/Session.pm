@@ -446,7 +446,7 @@ sub auth_kbdint_getnprmopts {
     my ($self, %options) = @_;
 
     my $ret = ssh_userauth_kbdint_getnprompts($self->{ssh_session});
-    if ($ret == SSH_AUTH_ERROR) {
+    if ($ret == SSH_ERROR) {
         $self->set_err(msg => sprintf("failed to get number of keyboard interactive prompts: %s", ssh_get_error_from_session($self->{ssh_session})));
     }
 

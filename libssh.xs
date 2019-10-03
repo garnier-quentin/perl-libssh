@@ -185,10 +185,21 @@ ssh_userauth_kbdint_getinstruction(ssh_session session)
         RETVAL = ssh_userauth_kbdint_getinstruction(session);
     OUTPUT: RETVAL
 
-const char *
+HV *
 ssh_userauth_kbdint_getprompt(ssh_session session, unsigned int i)
     CODE:
-        RETVAL = ssh_userauth_kbdint_getprompt(session, i, NULL);
+        HV *hv_ret = newHV();
+        const char *prompt;
+        char echo;
+
+        prompt = ssh_userauth_kbdint_getprompt(session, i, &echo);
+        (void)hv_store(hv_ret, "text", 4, newSVpv(prompt, strlen(prompt)), 0);
+        if (echo) {
+            (void)hv_store(hv_ret, "echo", 4, newSViv(1), 0);
+        } else {
+            (void)hv_store(hv_ret, "echo", 4, newSViv(0), 0);
+        }
+        RETVAL = hv_ret;
     OUTPUT: RETVAL
 
 int

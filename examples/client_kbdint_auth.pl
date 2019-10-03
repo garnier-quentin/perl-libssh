@@ -38,10 +38,10 @@ while ($ret == SSH_AUTH_INFO) {
 	for (my $i = 0; $i < $nprompts; $i++) {
 		my $answer;
 		my $prompt = $session->auth_kbdint_getprompt(index => $i);
-		if ($prompt =~ /Password:/) {
+		if ($prompt->{text} =~ /Password:/) {
 			$answer = $ssh_pass;
 		} else {
-			print "$prompt ";
+			print "$prompt " if ($prompt->{echo});
 			chomp($answer = <STDIN>);
 			$answer .= "\0";
 		}
