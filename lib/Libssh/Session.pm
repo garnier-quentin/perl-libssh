@@ -86,6 +86,18 @@ sub set_err {
     }
 }
 
+sub set_blocking {
+    my ($self, %options) = @_;
+
+    ssh_set_blocking($self->{ssh_session}, $options{blocking});
+}
+
+sub is_blocking {
+    my ($self, %options) = @_;
+
+    ssh_is_blocking($self->{ssh_session});
+}
+
 sub error {
     my ($self, %options) = @_;
     
@@ -515,7 +527,7 @@ sub add_command_internal {
         $options{timeout} : 300;
     my $timeout_nodata = (defined($options{timeout_nodata}) && int($options{timeout_nodata}) > 0) ? 
         $options{timeout_nodata} : 120;
-    
+
     my $channel_id = $self->open_channel();
     if ($channel_id !~ /^\d+\:\d+$/) {
         if (defined($options{command}->{callback})) {
@@ -532,7 +544,7 @@ sub add_command_internal {
     $self->{slots}->{$channel_id}->{stdout} = '';
     $self->{slots}->{$channel_id}->{stderr} = '';
     $self->{slots}->{$channel_id}->{read} = 0;
-    
+
     $self->channel_request_exec(channel => ${$self->{channels}->{$channel_id}},
                                 cmd => $options{command}->{cmd});
     if (defined($options{command}->{input_data})) {
@@ -549,6 +561,13 @@ sub add_command_internal {
         # Force to finish it
         $self->channel_send_eof(channel => ${$self->{channels}->{$channel_id}});
     }
+    return $channel_id;
+}
+
+sub channel_get_exit_status {
+    my ($self, %options) = @_;
+
+    return ssh_channel_get_exit_status($options{channel});
 }
 
 sub execute_read_channel {
@@ -578,7 +597,7 @@ sub execute_read_channel {
     }
     
     if (ssh_channel_is_eof($channel) != 0) {
-        $self->{slots}->{$channel_id}->{exit_code} = ssh_channel_get_exit_status($channel);
+        $self->{slots}->{$channel_id}->{exit_code} = $self->channel_get_exit_status(channel => $channel);
         $self->close_channel(channel_id => $channel_id);
         
         my %callback_options = (
@@ -606,7 +625,6 @@ sub execute_internal {
         $options{parallel} : 4;
     
     $self->{slots} = {};
-    $self->{channels_array} = [];
     while (1) {
         while (scalar(keys %{$self->{slots}}) < $parallel && scalar(@{$self->{commands}}) > 0) {
             $self->add_command_internal(command => shift(@{$self->{commands}}), %options);
@@ -709,7 +727,7 @@ sub get_channel {
         return undef;
     }
     
-    return $self->{channels}->{$options{channel_id}};
+    return ${$self->{channels}->{$options{channel_id}}};
 }
 
 sub close_channel {
