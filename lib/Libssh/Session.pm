@@ -527,7 +527,7 @@ sub add_command_internal {
         $options{timeout} : 300;
     my $timeout_nodata = (defined($options{timeout_nodata}) && int($options{timeout_nodata}) > 0) ? 
         $options{timeout_nodata} : 120;
-    
+
     my $channel_id = $self->open_channel();
     if ($channel_id !~ /^\d+\:\d+$/) {
         if (defined($options{command}->{callback})) {
@@ -544,7 +544,7 @@ sub add_command_internal {
     $self->{slots}->{$channel_id}->{stdout} = '';
     $self->{slots}->{$channel_id}->{stderr} = '';
     $self->{slots}->{$channel_id}->{read} = 0;
-    
+
     $self->channel_request_exec(channel => ${$self->{channels}->{$channel_id}},
                                 cmd => $options{command}->{cmd});
     if (defined($options{command}->{input_data})) {
@@ -561,6 +561,7 @@ sub add_command_internal {
         # Force to finish it
         $self->channel_send_eof(channel => ${$self->{channels}->{$channel_id}});
     }
+    return $channel_id;
 }
 
 sub channel_get_exit_status {
@@ -624,7 +625,6 @@ sub execute_internal {
         $options{parallel} : 4;
     
     $self->{slots} = {};
-    $self->{channels_array} = [];
     while (1) {
         while (scalar(keys %{$self->{slots}}) < $parallel && scalar(@{$self->{commands}}) > 0) {
             $self->add_command_internal(command => shift(@{$self->{commands}}), %options);
