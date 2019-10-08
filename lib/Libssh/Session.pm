@@ -632,14 +632,14 @@ sub execute_internal {
         
         last if (scalar(keys %{$self->{slots}}) == 0);
         
-        my @chanels_array = ();
+        my @channels_array = ();
         foreach (keys %{$self->{slots}}) {
             $self->{slots}->{$_}->{read} = 0;
-            push @chanels_array, ${$self->{channels}->{$_}};
+            push @channels_array, ${$self->{channels}->{$_}};
         }
         
         my $now = Time::HiRes::time();
-        my $ret = ssh_channel_select_read(\@chanels_array, 5);
+        my $ret = ssh_channel_select_read(\@channels_array, 5);
         if ($ret->{code} == SSH_OK) {
             foreach (@{$ret->{channel_ids}}) {
                 my ($session_id, $channel_id) = split /\./;
