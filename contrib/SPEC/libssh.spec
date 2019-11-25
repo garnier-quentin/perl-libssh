@@ -1,6 +1,6 @@
 
 Name:		libssh
-Version:	0.9.0
+Version:	0.9.2
 Release:	1%{?dist}
 Summary:	Library implementing the SSH2 protocol
 
