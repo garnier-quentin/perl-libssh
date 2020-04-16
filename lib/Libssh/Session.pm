@@ -286,7 +286,7 @@ sub get_hexa {
 sub is_server_known {
     my ($self, %options) = @_;
     
-    return ssh_is_server_known($self->{ssh_session});
+    return ssh_session_is_known_server($self->{ssh_session});
 }
 
 sub is_known_server {

@@ -249,19 +249,15 @@ ssh_get_issue_banner(ssh_session session)
         RETVAL = ssh_get_issue_banner(session);
     OUTPUT: RETVAL
 
-#
-
+# change since version 0.8.0
 int
 ssh_session_is_known_server(ssh_session session)
     CODE:
+#if LIBSSH_VERSION_INT >= 2048
         RETVAL = ssh_session_is_known_server(session);
-    OUTPUT: RETVAL
-
-# Deprecated
-int
-ssh_is_server_known(ssh_session session)
-    CODE:
+#else
         RETVAL = ssh_is_server_known(session);
+#endif
     OUTPUT: RETVAL
 
 ssh_key 
