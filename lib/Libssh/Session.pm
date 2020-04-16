@@ -254,7 +254,7 @@ sub get_publickey {
     my ($self, %options) = @_;
     
     $self->{pubkey} = undef;
-    return ssh_get_publickey($self->{ssh_session});
+    return ssh_get_server_publickey($self->{ssh_session});
 }
 
 sub get_server_publickey {
@@ -299,7 +299,7 @@ sub is_known_server {
 sub write_knownhost {
     my ($self, %options) = @_;
     
-    return ssh_write_knownhost($self->{ssh_session});
+    return ssh_session_update_known_hosts($self->{ssh_session});
 }
 
 sub update_known_hosts {
