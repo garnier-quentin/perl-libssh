@@ -1,6 +1,6 @@
 
 Name:		libssh
-Version:	0.9.2
+Version:	0.9.4
 Release:	1%{?dist}
 Summary:	Library implementing the SSH2 protocol
 
@@ -11,6 +11,8 @@ Source0:	%{name}-%{version}.tar.gz
 BuildRoot:	%(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
 BuildRequires: cmake
+BuildRequires: make
+BuildRequires: gcc-c++
 BuildRequires: openssl-devel
 BuildRequires: zlib-devel
 
