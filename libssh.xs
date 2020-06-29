@@ -411,6 +411,12 @@ ssh_channel_request_exec(ssh_channel channel, char *cmd)
     OUTPUT: RETVAL
 
 int
+ssh_channel_request_shell(ssh_channel channel)
+    CODE:
+        RETVAL = ssh_channel_request_shell(channel);
+    OUTPUT: RETVAL
+
+int
 ssh_channel_write(ssh_channel channel, char *data)
     CODE:
         RETVAL = ssh_channel_write(channel, data, strlen(data));
