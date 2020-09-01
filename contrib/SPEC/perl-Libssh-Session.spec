@@ -17,7 +17,7 @@ BuildRequires:  perl-ExtUtils-MakeMaker
 
 Provides:	    perl(Libssh::Session)
 Provides:	    perl(Libssh::Sftp)
-Requires:	    libssh
+Requires:	    libssh >= 0.9.0
 AutoReqProv:    no
 
 %description
