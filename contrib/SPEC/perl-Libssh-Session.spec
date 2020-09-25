@@ -2,7 +2,7 @@
 
 Name:		perl-Libssh-Session
 Version:	0.8
-Release:	1%{?dist}
+Release:	2%{?dist}
 Summary:	perl interface to the libssh library 
 Group:		Development/Libraries
 License:	Apache
