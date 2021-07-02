@@ -531,9 +531,9 @@ sub add_command_internal {
     my $channel_id = $self->open_channel();
     if ($channel_id !~ /^\d+\:\d+$/) {
         if (defined($options{command}->{callback})) {
-            $options{command}->{callback}->(exit => SSH_ERROR, error_msg => 'cannot init channel', session => $self);
+            $options{command}->{callback}->(exit => SSH_ERROR, error_msg => 'cannot init channel', session => $self, userdata => $options{command}->{userdata});
         } else {
-            push @{$self->{store_no_callback}}, { exit => SSH_ERROR, error_msg => 'cannot init channel', session => $self };
+            push @{$self->{store_no_callback}}, { exit => SSH_ERROR, error_msg => 'cannot init channel', session => $self, userdata => $options{command}->{userdata} };
         }
         return undef;
     }
@@ -559,9 +559,9 @@ sub add_command_internal {
         if ($self->channel_write(channel => ${$self->{channels}->{$channel_id}}, data => $options{command}->{input_data}) == SSH_ERROR) {
             $self->close_channel(channel_id => $channel_id);
             if (defined($options{command}->{callback})) {
-                $options{command}->{callback}->(exit => SSH_ERROR, error_msg => 'cannot write in channel', session => $self);
+                $options{command}->{callback}->(exit => SSH_ERROR, error_msg => 'cannot write in channel', session => $self, userdata => $options{command}->{userdata});
             } else {
-                push @{$self->{store_no_callback}}, { exit => SSH_ERROR, error_msg => 'cannot write in channel', session => $self };
+                push @{$self->{store_no_callback}}, { exit => SSH_ERROR, error_msg => 'cannot write in channel', session => $self, userdata => $options{command}->{userdata} };
             }
             return undef;
         }
@@ -887,11 +887,13 @@ Libssh::Session - Support for the SSH protocol via libssh.
     #$options{session}->add_command(command => { cmd => 'ls -l', callback => \&my_callback, userdata => 'cmd 3'});
   }
 
-  $session->execute(commands => [ 
-                    { cmd => 'ls -l', callback => \&my_callback, userdata => 'cmd 1'},
-                    { cmd => 'ls wanterrormsg', callback => \&my_callback, userdata => 'cmd 2 error'},
-                  ],
-                  timeout => 60, timeout_nodata => 30, parallel => 4);
+  $session->execute(
+    commands => [ 
+        { cmd => 'ls -l', callback => \&my_callback, userdata => 'cmd 1'},
+        { cmd => 'ls wanterrormsg', callback => \&my_callback, userdata => 'cmd 2 error'}
+    ],
+    timeout => 60, timeout_nodata => 30, parallel => 4
+  );
   exit(0);
 
 =head1 DESCRIPTION
