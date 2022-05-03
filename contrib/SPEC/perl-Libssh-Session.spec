@@ -1,8 +1,8 @@
 %define cpan_name Libssh-Session
 
 Name:		perl-Libssh-Session
-Version:	0.8
-Release:	2%{?dist}
+Version:	0.9
+Release:	1%{?dist}
 Summary:	perl interface to the libssh library 
 Group:		Development/Libraries
 License:	Apache
