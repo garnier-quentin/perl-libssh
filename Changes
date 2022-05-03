@@ -1,6 +1,7 @@
 Revision history for Perl extension Libssh.
 
 0.9 2022-05-03
+  - Add sftp_canonicalize_path binding
   - Add sftp_read binding
 
 0.8 2020-06-29

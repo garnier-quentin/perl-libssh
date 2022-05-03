@@ -659,3 +659,9 @@ sftp_unlink(sftp_session sftp, char *file)
     CODE:
         RETVAL = sftp_unlink(sftp, file);
     OUTPUT: RETVAL
+
+char *
+sftp_canonicalize_path(sftp_session sftp, char *path)
+    CODE:
+        RETVAL = sftp_canonicalize_path(sftp, path);
+    OUTPUT: RETVAL

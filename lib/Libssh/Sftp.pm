@@ -287,6 +287,12 @@ sub server_version {
     return sftp_server_version($self->{sftp_session});
 }
 
+sub canonicalize_path {
+    my ($self, %options) = @_;
+    
+    return sftp_canonicalize_path($self->{sftp_session}, $options{path});
+}
+
 sub open {
     my ($self, %options) = @_;
 
