@@ -605,7 +605,13 @@ sub execute_read_channel {
     }
     
     if (ssh_channel_is_eof($channel) != 0) {
-        $self->{slots}->{$channel_id}->{exit_code} = $self->channel_get_exit_status(channel => $channel);
+        my $channel_exit_status = SSH_ERROR;
+        for (my $i = 0; $i < 20; $i++) {
+            $channel_exit_status = $self->channel_get_exit_status(channel => $channel);
+            last if $channel_exit_status != SSH_ERROR;
+            Time::HiRes::usleep(50000);
+        }
+        $self->{slots}->{$channel_id}->{exit_code} = $channel_exit_status;
         $self->close_channel(channel_id => $channel_id);
         
         my %callback_options = (
