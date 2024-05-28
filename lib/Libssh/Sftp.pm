@@ -7,7 +7,7 @@ use POSIX;
 use Libssh::Session;
 use Exporter qw(import);
 
-our $VERSION = '0.9';
+our $VERSION = '1.0';
 
 use constant SSH_OK => 0;
 use constant SSH_ERROR => -1;
