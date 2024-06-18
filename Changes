@@ -1,5 +1,8 @@
 Revision history for Perl extension Libssh.
 
+1.1 2024-06-18
+  - Fix release
+
 1.0 2024-05-28
   - Fix race condition when exiting channel (PR #13)
 
